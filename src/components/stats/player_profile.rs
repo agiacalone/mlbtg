@@ -212,7 +212,8 @@ impl PlayerProfile {
                     Cell::from(s.base_on_balls.to_string())
                         .fg(s.base_on_balls.dim_or(Color::White)),
                     Cell::from(s.strike_outs.to_string()).fg(s.strike_outs.dim_or(Color::White)),
-                    Cell::from(s.whip.as_str()).fg(whip_color(s.whip.as_str()).unwrap_or(Color::White)),
+                    Cell::from(s.whip.as_str())
+                        .fg(whip_color(s.whip.as_str()).unwrap_or(Color::White)),
                 ]);
             }
         }
