@@ -3,8 +3,8 @@ use crate::components::standings::Team;
 use crate::components::stats::splits::{RecentSplit, RecentStats, StatSplits};
 use crate::components::team_colors;
 use crate::components::util::{
-    DimColor, OptionDisplayExt, OptionMapDisplayExt, avg_color, era_color, format_date,
-    obp_color, slg_color, ops_color, whip_color,
+    DimColor, OptionDisplayExt, OptionMapDisplayExt, avg_color, era_color, format_date, obp_color,
+    ops_color, slg_color, whip_color,
 };
 use crate::symbols::Symbols;
 use crate::theme::Theme;
@@ -174,9 +174,12 @@ impl PlayerProfile {
                     Cell::from(s.at_bats.to_string()).fg(s.at_bats.dim_or(Color::White)),
                     Cell::from(s.avg.as_str())
                         .fg(avg_color(s.avg.as_str()).unwrap_or(Color::White)),
-                    Cell::from(s.obp.as_str()).fg(obp_color(s.obp.as_str()).unwrap_or(Color::White)),
-                    Cell::from(s.slg.as_str()).fg(slg_color(s.slg.as_str()).unwrap_or(Color::White)),
-                    Cell::from(s.ops.as_str()).fg(ops_color(s.ops.as_str()).unwrap_or(Color::White)),
+                    Cell::from(s.obp.as_str())
+                        .fg(obp_color(s.obp.as_str()).unwrap_or(Color::White)),
+                    Cell::from(s.slg.as_str())
+                        .fg(slg_color(s.slg.as_str()).unwrap_or(Color::White)),
+                    Cell::from(s.ops.as_str())
+                        .fg(ops_color(s.ops.as_str()).unwrap_or(Color::White)),
                     Cell::from(s.runs.to_string()).fg(s.runs.dim_or(Color::White)),
                     Cell::from(s.hits.to_string()).fg(s.hits.dim_or(Color::White)),
                     Cell::from(s.doubles.to_string()).fg(s.doubles.dim_or(Color::White)),
@@ -218,12 +221,13 @@ impl PlayerProfile {
 
     fn game_log_cells<'a>(split: &'a Split, symbols: &Symbols) -> Vec<Cell<'a>> {
         let date = split.date.map_display_or(|d| format_date(d), "");
-        let prefix = if split.is_home == Some(true) { "vs" } else { " @" };
+        let prefix = if split.is_home == Some(true) {
+            "vs"
+        } else {
+            " @"
+        };
 
-        let opp_team = split
-            .opponent
-            .as_ref()
-            .map(|o| lookup_team(&o.name));
+        let opp_team = split.opponent.as_ref().map(|o| lookup_team(&o.name));
         let opp_abbr = opp_team.map(|t| t.abbreviation).unwrap_or("---");
 
         // whether the team won/lost, not the pitcher's game decision
@@ -396,8 +400,10 @@ impl PlayerProfile {
                             Cell::from(s.sb.to_string()).fg(s.sb.dim_or(Color::White)),
                             Cell::from(s.avg.as_str())
                                 .fg(avg_color(s.avg.as_str()).unwrap_or(Color::White)),
-                            Cell::from(s.obp.as_str()).fg(obp_color(s.obp.as_str()).unwrap_or(Color::White)),
-                            Cell::from(s.slg.as_str()).fg(slg_color(s.slg.as_str()).unwrap_or(Color::White)),
+                            Cell::from(s.obp.as_str())
+                                .fg(obp_color(s.obp.as_str()).unwrap_or(Color::White)),
+                            Cell::from(s.slg.as_str())
+                                .fg(slg_color(s.slg.as_str()).unwrap_or(Color::White)),
                         ]);
                     }
                     Some(RecentStats::Pitching(s)) => {
@@ -414,7 +420,8 @@ impl PlayerProfile {
                             Cell::from(s.er.to_string()).fg(s.er.dim_or(Color::White)),
                             Cell::from(s.bb.to_string()).fg(s.bb.dim_or(Color::White)),
                             Cell::from(s.so.to_string()).fg(s.so.dim_or(Color::White)),
-                            Cell::from(s.whip.as_str()).fg(whip_color(s.whip.as_str()).unwrap_or(Color::White)),
+                            Cell::from(s.whip.as_str())
+                                .fg(whip_color(s.whip.as_str()).unwrap_or(Color::White)),
                         ]);
                     }
                     None => {

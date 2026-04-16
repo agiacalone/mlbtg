@@ -1,6 +1,8 @@
 use crate::components::stats::table::TeamOrPlayer;
 use crate::components::stats::{STATS_DEFAULT_COL_WIDTH, STATS_FIRST_COL_WIDTH};
-use crate::components::util::{DimColor, avg_color, era_color, obp_color, ops_color, slg_color, whip_color};
+use crate::components::util::{
+    DimColor, avg_color, era_color, obp_color, ops_color, slg_color, whip_color,
+};
 use crate::state::stats::{ActivePane, StatsState};
 use crate::symbols::Symbols;
 use mlbt_api::client::StatGroup;

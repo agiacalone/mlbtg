@@ -254,54 +254,102 @@ mod stat_color_tests {
     use super::*;
 
     #[test]
-    fn obp_excellent() { assert_eq!(obp_color(".400"), Some(Theme::EXCELLENT)); }
+    fn obp_excellent() {
+        assert_eq!(obp_color(".400"), Some(Theme::EXCELLENT));
+    }
     #[test]
-    fn obp_good() { assert_eq!(obp_color(".355"), Some(Theme::GOOD)); }
+    fn obp_good() {
+        assert_eq!(obp_color(".355"), Some(Theme::GOOD));
+    }
     #[test]
-    fn obp_average() { assert_eq!(obp_color(".310"), None); }
+    fn obp_average() {
+        assert_eq!(obp_color(".310"), None);
+    }
     #[test]
-    fn obp_below() { assert_eq!(obp_color(".270"), Some(Theme::BELOW_AVG)); }
+    fn obp_below() {
+        assert_eq!(obp_color(".270"), Some(Theme::BELOW_AVG));
+    }
     #[test]
-    fn obp_poor() { assert_eq!(obp_color(".240"), Some(Theme::POOR)); }
+    fn obp_poor() {
+        assert_eq!(obp_color(".240"), Some(Theme::POOR));
+    }
     #[test]
-    fn obp_zero() { assert_eq!(obp_color(".000"), Some(Theme::DIMMED)); }
+    fn obp_zero() {
+        assert_eq!(obp_color(".000"), Some(Theme::DIMMED));
+    }
 
     #[test]
-    fn slg_excellent() { assert_eq!(slg_color(".520"), Some(Theme::EXCELLENT)); }
+    fn slg_excellent() {
+        assert_eq!(slg_color(".520"), Some(Theme::EXCELLENT));
+    }
     #[test]
-    fn slg_good() { assert_eq!(slg_color(".460"), Some(Theme::GOOD)); }
+    fn slg_good() {
+        assert_eq!(slg_color(".460"), Some(Theme::GOOD));
+    }
     #[test]
-    fn slg_average() { assert_eq!(slg_color(".400"), None); }
+    fn slg_average() {
+        assert_eq!(slg_color(".400"), None);
+    }
     #[test]
-    fn slg_below() { assert_eq!(slg_color(".320"), Some(Theme::BELOW_AVG)); }
+    fn slg_below() {
+        assert_eq!(slg_color(".320"), Some(Theme::BELOW_AVG));
+    }
     #[test]
-    fn slg_poor() { assert_eq!(slg_color(".280"), Some(Theme::POOR)); }
+    fn slg_poor() {
+        assert_eq!(slg_color(".280"), Some(Theme::POOR));
+    }
     #[test]
-    fn slg_zero() { assert_eq!(slg_color(".000"), Some(Theme::DIMMED)); }
+    fn slg_zero() {
+        assert_eq!(slg_color(".000"), Some(Theme::DIMMED));
+    }
 
     #[test]
-    fn ops_excellent() { assert_eq!(ops_color(".950"), Some(Theme::EXCELLENT)); }
+    fn ops_excellent() {
+        assert_eq!(ops_color(".950"), Some(Theme::EXCELLENT));
+    }
     #[test]
-    fn ops_good() { assert_eq!(ops_color(".820"), Some(Theme::GOOD)); }
+    fn ops_good() {
+        assert_eq!(ops_color(".820"), Some(Theme::GOOD));
+    }
     #[test]
-    fn ops_average() { assert_eq!(ops_color(".730"), None); }
+    fn ops_average() {
+        assert_eq!(ops_color(".730"), None);
+    }
     #[test]
-    fn ops_below() { assert_eq!(ops_color(".640"), Some(Theme::BELOW_AVG)); }
+    fn ops_below() {
+        assert_eq!(ops_color(".640"), Some(Theme::BELOW_AVG));
+    }
     #[test]
-    fn ops_poor() { assert_eq!(ops_color(".550"), Some(Theme::POOR)); }
+    fn ops_poor() {
+        assert_eq!(ops_color(".550"), Some(Theme::POOR));
+    }
     #[test]
-    fn ops_zero() { assert_eq!(ops_color(".000"), Some(Theme::DIMMED)); }
+    fn ops_zero() {
+        assert_eq!(ops_color(".000"), Some(Theme::DIMMED));
+    }
 
     #[test]
-    fn whip_excellent() { assert_eq!(whip_color("0.85"), Some(Theme::EXCELLENT)); }
+    fn whip_excellent() {
+        assert_eq!(whip_color("0.85"), Some(Theme::EXCELLENT));
+    }
     #[test]
-    fn whip_good() { assert_eq!(whip_color("1.05"), Some(Theme::GOOD)); }
+    fn whip_good() {
+        assert_eq!(whip_color("1.05"), Some(Theme::GOOD));
+    }
     #[test]
-    fn whip_average() { assert_eq!(whip_color("1.25"), None); }
+    fn whip_average() {
+        assert_eq!(whip_color("1.25"), None);
+    }
     #[test]
-    fn whip_below() { assert_eq!(whip_color("1.45"), Some(Theme::BELOW_AVG)); }
+    fn whip_below() {
+        assert_eq!(whip_color("1.45"), Some(Theme::BELOW_AVG));
+    }
     #[test]
-    fn whip_poor() { assert_eq!(whip_color("1.70"), Some(Theme::POOR)); }
+    fn whip_poor() {
+        assert_eq!(whip_color("1.70"), Some(Theme::POOR));
+    }
     #[test]
-    fn whip_zero() { assert_eq!(whip_color("0.00"), Some(Theme::EXCELLENT)); }
+    fn whip_zero() {
+        assert_eq!(whip_color("0.00"), Some(Theme::EXCELLENT));
+    }
 }

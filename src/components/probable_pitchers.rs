@@ -1,5 +1,5 @@
 use crate::components::standings::Team;
-use crate::components::util::{era_color, OptionDisplayExt};
+use crate::components::util::{OptionDisplayExt, era_color};
 use mlbt_api::schedule::TeamInfo;
 use tui::prelude::Stylize;
 use tui::style::Color;
@@ -74,8 +74,11 @@ impl ProbablePitcher {
             Cell::from(self.name.clone()),
             Cell::from(self.wins.display_or("-")),
             Cell::from(self.losses.display_or("-")),
-            Cell::from(self.era.display_or("-"))
-                .fg(self.era.as_deref().and_then(era_color).unwrap_or(Color::White)),
+            Cell::from(self.era.display_or("-")).fg(self
+                .era
+                .as_deref()
+                .and_then(era_color)
+                .unwrap_or(Color::White)),
             Cell::from(self.innings_pitched.display_or("-")),
             Cell::from(self.strike_outs.display_or("-")),
             Cell::from(self.base_on_balls.display_or("-")),
