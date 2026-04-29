@@ -1,11 +1,9 @@
-use chrono::{DateTime, NaiveDate, Utc};
-use chrono_tz::Tz;
 use log::error;
 use tui::style::Color;
 
 use crate::theme::Theme;
 
-/// Returns `Color::DarkGray` when the value is zero, otherwise the given fallback color.
+/// Returns `Theme::DIMMED` when the value is zero, otherwise the given fallback color.
 /// e.g. `self.hits.dim_or(color)`
 pub(crate) trait DimColor {
     fn dim_or(&self, fallback: Color) -> Color;
@@ -65,21 +63,16 @@ impl<T> OptionMapDisplayExt<T> for Option<T> {
     }
 }
 
-/// Format "YYYY-MM-DD" as "M/D/YYYY", or return the original string if parsing fails.
-pub(crate) fn format_date(s: &str) -> String {
-    NaiveDate::parse_from_str(s, "%Y-%m-%d")
-        .map(|d| d.format("%-m/%-d/%Y").to_string())
-        .unwrap_or_else(|_| s.to_string())
-}
-
-/// Format a UTC game start time for schedule/table display in the user's configured timezone.
-pub(crate) fn format_start_time_table(utc: DateTime<Utc>, tz: Tz) -> String {
-    utc.with_timezone(&tz).format("%l:%M %P").to_string()
-}
-
-/// Format a UTC game start time for compact display in the user's configured timezone.
-pub(crate) fn format_start_time_compact(utc: DateTime<Utc>, tz: Tz) -> String {
-    utc.with_timezone(&tz).format("%-I:%M %P").to_string()
+/// Surname for compact display. Skips trailing generational suffixes so "Vladimir Guerrero Jr."
+/// returns "Guerrero" instead of "Jr."
+pub(crate) fn last_name(full: &str) -> &str {
+    let mut parts = full.rsplitn(3, ' ');
+    let tail = parts.next().unwrap_or(full);
+    if matches!(tail, "Jr." | "Sr." | "II" | "III" | "IV") {
+        parts.next().unwrap_or(tail)
+    } else {
+        tail
+    }
 }
 
 /// Color for an ERA stat string. Returns `None` for average range (3.00–4.99) so
@@ -227,6 +220,21 @@ pub(crate) fn convert_color(s: String) -> Color {
         error!("color doesn't start with 'rgba(' {s:?}");
         Color::Rgb(0, 0, 0)
     }
+}
+
+#[test]
+fn test_last_name() {
+    assert_eq!(last_name("Jack Flaherty"), "Flaherty");
+    assert_eq!(last_name("J.P. France"), "France");
+    assert_eq!(last_name("Vladimir Guerrero Jr."), "Guerrero");
+    assert_eq!(last_name("Cal Ripken Jr."), "Ripken");
+    assert_eq!(last_name("Ken Griffey Sr."), "Griffey");
+    assert_eq!(last_name("Cal Ripken III"), "Ripken");
+    assert_eq!(last_name("Robert Person II"), "Person");
+    assert_eq!(last_name("Madison"), "Madison");
+    assert_eq!(last_name(""), "");
+    // suffix-only input falls back to the suffix
+    assert_eq!(last_name("Jr."), "Jr.");
 }
 
 #[test]

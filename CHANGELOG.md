@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Merged from upstream
+
+- Add winning, losing, and save (if applicable) pitchers for games that have
+  ended in the Schedule tab: [PR 138](https://github.com/mlb-rs/mlbt/pull/138)
+- Add `all | qualified` toggle to Stats and save sort + column preferences in
+  memory: [PR 137](https://github.com/mlb-rs/mlbt/pull/137)
+- Allow wrapping on help text scroll: [PR 136](https://github.com/mlb-rs/mlbt/pull/136)
+- Bump Rust to 1.95: [PR 135](https://github.com/mlb-rs/mlbt/pull/135)
+- Use `chrono` types for improved datetime handling: [PR 139](https://github.com/mlb-rs/mlbt/pull/139)
+- Stop `cargo test` from overwriting `mlbt.toml`: [PR 140](https://github.com/mlb-rs/mlbt/pull/140)
+
 ## [1.0.0] - 2026-04-16
 
 ### Added (mlbtg)
@@ -18,6 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Upstream base: [0.3.1] - 2026-04-16
 
 - Fix double key press on Windows. Thanks @samc1213! [PR 131](https://github.com/mlb-rs/mlbt/pull/131)
+
 
 ## [0.3.1] - 2026-04-16
 

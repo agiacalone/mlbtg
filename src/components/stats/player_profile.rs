@@ -1,10 +1,11 @@
 use crate::components::constants::{lookup_team, lookup_team_by_id};
+use crate::components::datetime::format_numeric_date_or;
 use crate::components::standings::Team;
 use crate::components::stats::splits::{RecentSplit, RecentStats, StatSplits};
 use crate::components::team_colors;
 use crate::components::util::{
-    DimColor, OptionDisplayExt, OptionMapDisplayExt, avg_color, era_color, format_date, obp_color,
-    ops_color, slg_color, whip_color,
+    DimColor, OptionDisplayExt, OptionMapDisplayExt, avg_color, era_color, obp_color, ops_color,
+    slg_color, whip_color,
 };
 use crate::symbols::Symbols;
 use crate::theme::Theme;
@@ -109,7 +110,7 @@ impl PlayerProfile {
         let weight = person.weight.map_display_or(|w| format!("{w}lb"), "");
         let age = person.current_age.display_or("-");
 
-        let birth_date = person.birth_date.map_display_or(|d| format_date(d), "---");
+        let birth_date = format_numeric_date_or(person.birth_date, "---");
         let birthplace = [
             person.birth_city.as_deref(),
             person.birth_state_province.as_deref(),
@@ -134,9 +135,7 @@ impl PlayerProfile {
             ));
         }
 
-        let mlb_debut = person
-            .mlb_debut_date
-            .map_display_or(|d| format_date(d), "---");
+        let mlb_debut = format_numeric_date_or(person.mlb_debut_date, "---");
 
         let mut bio = vec![
             format!("{position} | {bats}/{throws} | {height} {weight} | Age: {age}").into(),
@@ -221,7 +220,7 @@ impl PlayerProfile {
     }
 
     fn game_log_cells<'a>(split: &'a Split, symbols: &Symbols) -> Vec<Cell<'a>> {
-        let date = split.date.map_display_or(|d| format_date(d), "");
+        let date = format_numeric_date_or(split.date, "");
         let prefix = if split.is_home == Some(true) {
             "vs"
         } else {

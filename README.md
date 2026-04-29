@@ -156,6 +156,7 @@ Navigate at bats:
 | `Shift` + `j` / `k` | Page up / down |
 | `p` / `h` | Pitching / hitting |
 | `t` / `l` | Team / player |
+| `a` / `u` | All / qualified players |
 | `Ctrl` + `f` | Fuzzy search |
 | `o` | Toggle options pane |
 | `s` | Sort by selected column |

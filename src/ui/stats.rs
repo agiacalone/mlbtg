@@ -5,9 +5,10 @@ use crate::components::util::{
 };
 use crate::state::stats::{ActivePane, StatsState};
 use crate::symbols::Symbols;
-use mlbt_api::client::StatGroup;
+use crate::theme::Theme;
+use mlbt_api::client::{Qualification, StatGroup};
 use tui::prelude::*;
-use tui::widgets::{Block, BorderType, Borders, Cell, Padding, Paragraph, Row, Table, Wrap};
+use tui::widgets::{Block, BorderType, Borders, Cell, Padding, Paragraph, Row, Table};
 
 pub const STATS_OPTIONS_WIDTH: u16 = 36;
 
@@ -73,7 +74,7 @@ impl StatefulWidget for StatsDataWidget<'_> {
                     .enumerate()
                     .map(|(i, cell)| {
                         let color = if Some(i) == avg_idx {
-                            avg_color(cell).unwrap_or(Color::White)
+                            avg_color(cell).unwrap_or_default()
                         } else if Some(i) == era_idx {
                             era_color(cell).unwrap_or(Color::White)
                         } else if Some(i) == obp_idx {
@@ -85,7 +86,7 @@ impl StatefulWidget for StatsDataWidget<'_> {
                         } else if Some(i) == whip_idx {
                             whip_color(cell).unwrap_or(Color::White)
                         } else {
-                            cell.as_str().dim_or(Color::White)
+                            cell.as_str().dim_or(Color::default())
                         };
                         Cell::from(cell.as_str()).style(theme.stat_style(color))
                     })
@@ -138,10 +139,11 @@ impl StatefulWidget for StatsOptionsWidget<'_> {
 
     fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
         let [stats_rect, options_rect] =
-            Layout::vertical([Constraint::Length(4), Constraint::Percentage(100)]).areas(area);
+            Layout::vertical([Constraint::Length(5), Constraint::Percentage(100)]).areas(area);
 
         // hitting | pitching
-        // team | player
+        //    team | player
+        //     all | qualified
         let highlight = self.symbols.theme().selection_style();
         let (hitting_style, pitching_style) = match state.stat_type.group {
             StatGroup::Pitching => (Style::default(), highlight),
@@ -151,27 +153,60 @@ impl StatefulWidget for StatsOptionsWidget<'_> {
             TeamOrPlayer::Player => (Style::default(), highlight),
             TeamOrPlayer::Team => (highlight, Style::default()),
         };
-        let text = vec![
-            Line::from(vec![
-                Span::styled("hitting", hitting_style),
-                Span::raw(" | "),
-                Span::styled("pitching", pitching_style),
-            ]),
-            Line::from(vec![
-                Span::styled("team", team_style),
-                Span::raw(" | "),
-                Span::styled("player", player_style),
-            ]),
-        ];
-        Paragraph::new(text)
-            .block(
-                Block::default()
-                    .borders(Borders::ALL)
-                    .border_type(BorderType::Rounded),
-            )
-            .alignment(Alignment::Center)
-            .wrap(Wrap { trim: true })
-            .render(stats_rect, buf);
+
+        let is_team = state.stat_type.team_player == TeamOrPlayer::Team;
+        let dim_if_team = if is_team {
+            Style::default().fg(Theme::DIMMED)
+        } else {
+            Style::default()
+        };
+        let (all_style, qualified_style) = if is_team {
+            // disable qualification selection when Team is selected because it's not applicable
+            (dim_if_team, dim_if_team)
+        } else {
+            match state.stat_type.qualification {
+                Qualification::All => (highlight, Style::default()),
+                Qualification::Qualified => (Style::default(), highlight),
+            }
+        };
+
+        let block = Block::default()
+            .borders(Borders::ALL)
+            .border_type(BorderType::Rounded);
+        let inner = block.inner(stats_rect);
+        block.render(stats_rect, buf);
+
+        // split into three chunks so that the center line is always exactly in the center
+        let [left_area, divider_area, right_area] = Layout::horizontal([
+            Constraint::Fill(1),
+            Constraint::Length(3),
+            Constraint::Fill(1),
+        ])
+        .areas(inner);
+
+        Paragraph::new(vec![
+            Line::from(Span::styled("hitting", hitting_style)),
+            Line::from(Span::styled("team", team_style)),
+            Line::from(Span::styled("all", all_style)),
+        ])
+        .alignment(Alignment::Right)
+        .render(left_area, buf);
+
+        Paragraph::new(vec![
+            Line::from(" | "),
+            Line::from(" | "),
+            Line::from(" | ").style(dim_if_team),
+        ])
+        .alignment(Alignment::Center)
+        .render(divider_area, buf);
+
+        Paragraph::new(vec![
+            Line::from(Span::styled("pitching", pitching_style)),
+            Line::from(Span::styled("player", player_style)),
+            Line::from(Span::styled("qualified", qualified_style)),
+        ])
+        .alignment(Alignment::Left)
+        .render(right_area, buf);
 
         // Create the options rows, e.g. ["[X]", "ERA", "earned run average"]
         let mut options = Vec::new();

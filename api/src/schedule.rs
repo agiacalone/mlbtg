@@ -1,4 +1,5 @@
 use crate::stats::DisplayName;
+use chrono::{DateTime, NaiveDate, Utc};
 use serde::{Deserialize, Serialize};
 
 #[derive(Default, Debug, Serialize, Deserialize)]
@@ -32,7 +33,8 @@ pub struct IdNameLink {
 #[derive(Default, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Dates {
-    pub date: Option<String>,
+    #[serde(default, with = "crate::serde_dates::optional_date")]
+    pub date: Option<NaiveDate>,
     pub total_items: Option<u8>,
     pub total_events: Option<u8>,
     pub total_games: Option<u8>,
@@ -58,8 +60,8 @@ pub struct Game {
     pub link: String,
     // pub game_type: Option<GameType>,
     pub season: String,
-    pub game_date: String,
-    pub official_date: String,
+    pub game_date: DateTime<Utc>,
+    pub official_date: NaiveDate,
     pub status: Status,
     pub teams: Teams,
     /// Only present if `hydrate=linescore` is used.
@@ -88,6 +90,7 @@ pub struct Game {
     // pub description: Option<String>,
     // pub resume_date: Option<String>,
     // pub reschedule_date: Option<String>,
+    pub decisions: Option<Decisions>,
 }
 
 #[derive(Default, Debug, Serialize, Deserialize)]
@@ -178,6 +181,7 @@ pub struct StatEntry {
 #[derive(Default, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PitcherStats {
+    pub note: Option<String>,
     pub summary: Option<String>,
     pub strike_outs: Option<u16>,
     pub base_on_balls: Option<u16>,
@@ -185,4 +189,22 @@ pub struct PitcherStats {
     pub innings_pitched: Option<String>,
     pub wins: Option<u8>,
     pub losses: Option<u8>,
+    pub saves: Option<u8>,
+}
+
+/// Only present if `hydrate=decisions` is used, and only present for Final games.
+#[derive(Default, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Decisions {
+    pub winner: DecisionPitcher,
+    pub loser: DecisionPitcher,
+    pub save: Option<DecisionPitcher>,
+}
+
+#[derive(Default, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DecisionPitcher {
+    pub full_name: String,
+    #[serde(default)]
+    pub stats: Vec<StatEntry>,
 }

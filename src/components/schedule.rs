@@ -1,14 +1,14 @@
 use crate::components::constants::lookup_team_or;
 use crate::components::date_selector::DateSelector;
+use crate::components::datetime::format_game_time_padded;
+use crate::components::decision_pitchers::GameDecisionPitchers;
 use crate::components::probable_pitchers::{ProbablePitcher, ProbablePitcherMatchup};
 use crate::components::standings::Team;
-use crate::components::util::format_start_time_table;
 use crate::state::app_settings::AppSettings;
 use crate::state::app_state::HomeOrAway;
 use chrono::{DateTime, NaiveDate, Utc};
 use chrono_tz::Tz;
 use core::option::Option::{None, Some};
-use log::error;
 use mlbt_api::schedule::{Game, LeagueRecord, ScheduleResponse};
 use std::cmp::Ordering;
 use tui::widgets::TableState;
@@ -49,6 +49,7 @@ pub struct ScheduleRow {
     pub game_status: String,
     pub home_probable_pitcher: ProbablePitcher,
     pub away_probable_pitcher: ProbablePitcher,
+    pub decision_pitchers: Option<GameDecisionPitchers>,
 }
 
 #[derive(Default, Copy, Clone)]
@@ -117,6 +118,16 @@ impl ScheduleState {
         })
     }
 
+    /// Look up decisions by `game_id` so the right panel can load them based on the gameday-loaded
+    /// game, keeping them in sync with the linescore and box score.
+    pub fn get_decision_pitchers_for_game(&self, game_id: u64) -> Option<&GameDecisionPitchers> {
+        if game_id == 0 {
+            return None;
+        }
+        let row = self.schedule.iter().find(|row| row.game_id == game_id)?;
+        row.decision_pitchers.as_ref()
+    }
+
     pub fn toggle_win_probability(&mut self) {
         self.show_win_probability = !self.show_win_probability;
     }
@@ -125,7 +136,7 @@ impl ScheduleState {
     /// Called after the user changes timezone so times update without a schedule refetch.
     pub fn refresh_start_times(&mut self, tz: Tz) {
         for row in &mut self.schedule {
-            row.start_time = format_start_time_table(row.start_time_utc, tz);
+            row.start_time = format_game_time_padded(row.start_time_utc, tz);
         }
     }
 
@@ -145,6 +156,10 @@ impl ScheduleState {
     }
 
     pub fn next(&mut self) {
+        if self.schedule.is_empty() {
+            self.state.select(None);
+            return;
+        }
         let i = match self.state.selected() {
             Some(i) => {
                 if i >= self.schedule.len() - 1 {
@@ -159,6 +174,10 @@ impl ScheduleState {
     }
 
     pub fn previous(&mut self) {
+        if self.schedule.is_empty() {
+            self.state.select(None);
+            return;
+        }
         let i = match self.state.selected() {
             Some(i) => {
                 if i == 0 {
@@ -220,13 +239,8 @@ impl ScheduleRow {
         });
         let away_record = Record::from_league_record(away_team.league_record.as_ref());
 
-        let start_time_utc = DateTime::parse_from_rfc3339(&game.game_date)
-            .map(|dt| dt.with_timezone(&Utc))
-            .unwrap_or_else(|err| {
-                error!("invalid game_date {:?}: {err}", game.game_date);
-                DateTime::<Utc>::UNIX_EPOCH
-            });
-        let start_time = format_start_time_table(start_time_utc, timezone);
+        let start_time_utc = game.game_date;
+        let start_time = format_game_time_padded(start_time_utc, timezone);
 
         let game_status = match &game.status.detailed_state {
             Some(s) if s == "In Progress" => {
@@ -260,6 +274,7 @@ impl ScheduleRow {
             start_time_utc,
             home_probable_pitcher: ProbablePitcher::from_team(&game.teams.home).unwrap_or_default(),
             away_probable_pitcher: ProbablePitcher::from_team(&game.teams.away).unwrap_or_default(),
+            decision_pitchers: GameDecisionPitchers::from_game(game),
         }
     }
 
@@ -322,6 +337,7 @@ mod tests {
             game_status: String::new(),
             home_probable_pitcher: ProbablePitcher::default(),
             away_probable_pitcher: ProbablePitcher::default(),
+            decision_pitchers: None,
         }
     }
 

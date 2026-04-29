@@ -6,7 +6,7 @@ use crate::state::settings_editor::SettingsFocus;
 use crate::state::stats::ActivePane;
 use crossterm::event::KeyCode::Char;
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
-use mlbt_api::client::StatGroup;
+use mlbt_api::client::{Qualification, StatGroup};
 use std::sync::Arc;
 use tokio::sync::{Mutex, MutexGuard, mpsc};
 
@@ -165,6 +165,18 @@ pub async fn handle_key_bindings(
         }
         (MenuItem::Stats, Char('t'), _) => {
             guard.state.stats.stat_type.team_player = TeamOrPlayer::Team;
+            load_stats(guard, network_requests, false).await;
+        }
+        (MenuItem::Stats, Char('a'), _)
+            if guard.state.stats.stat_type.team_player == TeamOrPlayer::Player =>
+        {
+            guard.state.stats.stat_type.qualification = Qualification::All;
+            load_stats(guard, network_requests, false).await;
+        }
+        (MenuItem::Stats, Char('u'), _)
+            if guard.state.stats.stat_type.team_player == TeamOrPlayer::Player =>
+        {
+            guard.state.stats.stat_type.qualification = Qualification::Qualified;
             load_stats(guard, network_requests, false).await;
         }
         (MenuItem::Stats, KeyCode::Enter, _) => {
@@ -389,10 +401,8 @@ async fn handle_global_key(
         }
         (Char('?'), _) => guard.update_tab(MenuItem::Help),
         (Char('d'), _) => guard.toggle_debug(),
-        (Char('"'), _) => {
-            if guard.state.debug_state == DebugState::On {
-                guard.toggle_show_logs();
-            }
+        (Char('"'), _) if guard.state.debug_state == DebugState::On => {
+            guard.toggle_show_logs();
         }
         _ => {}
     }

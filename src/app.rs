@@ -353,10 +353,13 @@ mod tests {
     use tui::widgets::TableState;
 
     fn test_app() -> App {
+        // tests must never share the real config file path, otherwise running the suite would
+        // overwrite the local `mlbt.toml` with default settings on every save call
+        let path = std::env::temp_dir().join(format!("mlbt-test-{}.toml", std::process::id()));
         App {
             settings: AppSettings::from(ConfigFile::default()),
             state: AppState::default(),
-            store: TomlFileStore::default(),
+            store: TomlFileStore::with_path(path),
         }
     }
 
@@ -406,10 +409,11 @@ mod tests {
             away_score: None,
             away_record: None,
             start_time: String::new(),
-            start_time_utc: chrono::DateTime::<chrono::Utc>::UNIX_EPOCH,
+            start_time_utc: chrono::DateTime::<Utc>::UNIX_EPOCH,
             game_status: String::new(),
             home_probable_pitcher: ProbablePitcher::default(),
             away_probable_pitcher: ProbablePitcher::default(),
+            decision_pitchers: None,
         }
     }
 

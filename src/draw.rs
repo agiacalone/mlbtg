@@ -11,6 +11,7 @@ use crate::state::network::{ERROR_CHAR, LoadingState};
 use crate::symbols::Symbols;
 use crate::ui::boxscore::TeamBatterBoxscoreWidget;
 use crate::ui::date_selector::DateSelectorWidget;
+use crate::ui::decision_pitchers::DecisionPitchersWidget;
 use crate::ui::gameday::gameday_widget::GamedayWidget;
 use crate::ui::gameday::win_probability::WinProbabilityWidget;
 use crate::ui::help::help_widget::HelpWidget;
@@ -224,7 +225,15 @@ fn draw_scoreboard(f: &mut Frame, rect: Rect, app: &mut App, symbols: &Symbols) 
 }
 
 fn draw_linescore_boxscore(f: &mut Frame, rect: Rect, app: &mut App, symbols: &Symbols) {
-    let chunks = LayoutAreas::for_boxscore(rect);
+    let decision_pitchers = if app.state.gameday.is_final() {
+        app.state
+            .schedule
+            .get_decision_pitchers_for_game(app.state.gameday.current_game_id())
+    } else {
+        None
+    };
+    let pitcher_count = decision_pitchers.map_or(0, |d| d.count());
+    let chunks = LayoutAreas::for_boxscore(rect, pitcher_count);
 
     f.render_widget(
         LineScoreWidget {
@@ -233,13 +242,19 @@ fn draw_linescore_boxscore(f: &mut Frame, rect: Rect, app: &mut App, symbols: &S
         },
         chunks[0],
     );
+    let boxscore_chunk = if let Some(decisions) = decision_pitchers {
+        f.render_widget(DecisionPitchersWidget { decisions }, chunks[1]);
+        chunks[2]
+    } else {
+        chunks[1]
+    };
     f.render_widget(
         TeamBatterBoxscoreWidget {
             active: app.state.box_score.active_team,
             state: &mut app.state.box_score,
             symbols,
         },
-        chunks[1],
+        boxscore_chunk,
     );
 }
 
