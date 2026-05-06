@@ -5,34 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.1.0] - 2026-05-05
 
-### Merged from upstream
+### Changed
+- Merged upstream v0.4.0 (mlb-rs/mlbt #141 styling refactor + release).
+- Adopted upstream's `src/ui/styling.rs` as the chrome frame.
+- Moved Fangraphs stat colors and chrome palette into `src/ui/palette.rs` (sibling layer).
+- Removed `theme_level`, `nerd_fonts`, `team_colors` config keys.
+- Glyphs and rich color are now unconditional. A Nerd Font terminal is required.
 
-- Add winning, losing, and save (if applicable) pitchers for games that have
+## [0.4.0]
+
+### Added
+
+- Add winning, losing, and save (if applicable) pitchers for games that have 
   ended in the Schedule tab: [PR 138](https://github.com/mlb-rs/mlbt/pull/138)
 - Add `all | qualified` toggle to Stats and save sort + column preferences in
   memory: [PR 137](https://github.com/mlb-rs/mlbt/pull/137)
-- Allow wrapping on help text scroll: [PR 136](https://github.com/mlb-rs/mlbt/pull/136)
-- Bump Rust to 1.95: [PR 135](https://github.com/mlb-rs/mlbt/pull/135)
-- Use `chrono` types for improved datetime handling: [PR 139](https://github.com/mlb-rs/mlbt/pull/139)
-- Stop `cargo test` from overwriting `mlbt.toml`: [PR 140](https://github.com/mlb-rs/mlbt/pull/140)
 
-## [1.0.0] - 2026-04-16
+### Fixed
 
-### Added (mlbtg)
-
-- Nerd Font icons for tabs, weather, bases, and plays (`nerd_fonts` config toggle)
-- Team colors applied throughout the UI (`team_colors` config toggle): scoreboard abbreviations, standings names, gameday linescore, matchup team name headers, player profile badge, win probability y-axis labels, base runner diamonds, and score line
-- Theme tiers: lean / classic / rainbow (`theme` config toggle)
-- Weather display in gameday matchup panel with temperature color-coding and directional wind arrows
-- Linescore abbreviation now uses team color and bolds the leading/winning team
-
-### Upstream base: [0.3.1] - 2026-04-16
-
-- Fix double key press on Windows. Thanks @samc1213! [PR 131](https://github.com/mlb-rs/mlbt/pull/131)
-
-
+- Fix light themes and some dark themes by refactoring style handling so the TUI
+  respects the terminal colors: [PR 141](https://github.com/mlb-rs/mlbt/pull/141)
+ 
 ## [0.3.1] - 2026-04-16
 
 ### Fixed

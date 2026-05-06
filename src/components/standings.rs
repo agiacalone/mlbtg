@@ -1,8 +1,9 @@
 use crate::components::constants::{DIVISION_ORDERS, DIVISIONS, lookup_team, lookup_team_by_id};
 use crate::components::date_selector::DateSelector;
 use crate::components::team_colors;
-use crate::components::util::win_pct_color;
 use crate::state::team_page::TeamPageState;
+use crate::ui::palette;
+use crate::ui::styling::TEXT_COLOR;
 use chrono::NaiveDate;
 use chrono_tz::Tz;
 use mlbt_api::player::PeopleResponse;
@@ -492,42 +493,36 @@ impl Standing {
         }
     }
 
-    pub fn to_cells(&self, symbols: &crate::symbols::Symbols) -> Vec<Cell<'_>> {
-        let theme = symbols.theme();
+    pub fn to_cells(&self) -> Vec<Cell<'_>> {
         let (prefix, rdiff_color) = match self.run_differential.signum() {
             1 => ("+", Color::Green),
             -1 => ("", Color::Red),
-            _ => ("", Color::White),
+            _ => ("", TEXT_COLOR),
         };
-        let pct_color = win_pct_color(&self.winning_percentage).unwrap_or(Color::White);
+        let pct_color = palette::win_pct_color(&self.winning_percentage).unwrap_or(TEXT_COLOR);
         let streak_color = match self.streak.chars().next() {
             Some('W') => Color::Green,
             Some('L') => Color::Red,
-            _ => Color::White,
+            _ => TEXT_COLOR,
         };
-
-        let name_cell = if symbols.team_colors() {
-            let style = team_colors::get(self.team.abbreviation, false)
-                .map(|c| tui::prelude::Style::default().fg(c))
-                .unwrap_or_default();
-            Cell::from(self.team.name.to_string()).style(style)
-        } else {
-            self.team.name.to_string().into()
+        let name_cell = match team_colors::get(self.team.abbreviation, false) {
+            Some(c) => Cell::from(self.team.name.to_string()).style(palette::stat_style(c)),
+            None => self.team.name.to_string().into(),
         };
 
         vec![
             name_cell,
             self.wins.to_string().into(),
             self.losses.to_string().into(),
-            Cell::from(self.winning_percentage.clone()).style(theme.stat_style(pct_color)),
+            Cell::from(self.winning_percentage.clone()).style(palette::stat_style(pct_color)),
             self.games_back.clone().into(),
             self.wild_card_games_back.clone().into(),
             self.last_10.clone().into(),
-            Cell::from(self.streak.clone()).style(theme.stat_style(streak_color)),
+            Cell::from(self.streak.clone()).style(palette::stat_style(streak_color)),
             self.runs_scored.to_string().into(),
             self.runs_allowed.to_string().into(),
             Cell::from(format!("{}{}", prefix, self.run_differential))
-                .style(theme.stat_style(rdiff_color)),
+                .style(palette::stat_style(rdiff_color)),
             self.xwl.clone().into(),
             self.home.clone().into(),
             self.away.clone().into(),

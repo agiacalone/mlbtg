@@ -1,6 +1,5 @@
 use crate::components::standings::Team;
 use crate::config::{ConfigFile, LogLevel, TomlFileStore};
-use crate::theme::ThemeLevel;
 use chrono::{TimeZone, Utc};
 use chrono_tz::{OffsetName, Tz};
 use log::error;
@@ -12,9 +11,6 @@ pub struct AppSettings {
     pub timezone: Tz,
     pub timezone_abbreviation: String,
     pub log_level: LogLevel,
-    pub nerd_fonts: bool,
-    pub team_colors: bool,
-    pub theme: ThemeLevel,
 }
 
 impl AppSettings {

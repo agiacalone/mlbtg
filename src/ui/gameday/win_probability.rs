@@ -3,8 +3,8 @@ use crate::components::game::live_game::{AtBatIndex, GameState};
 use crate::components::game::win_probability::WinProbabilityAtBat;
 use crate::components::standings::Team;
 use crate::components::team_colors;
-use crate::symbols::Symbols;
 use crate::ui::gameday::plays::{BLUE, GREEN};
+use crate::ui::styling::{TEXT_COLOR, border_style, header_style, selected_style};
 use indexmap::IndexMap;
 use tui::prelude::*;
 use tui::widgets::{
@@ -17,7 +17,6 @@ pub struct WinProbabilityWidget<'a> {
     pub game: &'a GameState,
     pub selected_at_bat: Option<u8>,
     pub active_tab: MenuItem,
-    pub symbols: &'a Symbols,
 }
 
 struct WinProbabilityData<'a> {
@@ -46,7 +45,7 @@ impl Widget for WinProbabilityWidget<'_> {
                 .vertical_margin(1)
                 .areas(area);
                 let data = WinProbabilityData::new(self.game, self.selected_at_bat, chart.height);
-                data.render_line_chart(chart, buf, self.symbols);
+                data.render_line_chart(chart, buf);
             }
             MenuItem::Gameday => {
                 let [table, chart] =
@@ -54,7 +53,7 @@ impl Widget for WinProbabilityWidget<'_> {
                         .areas(area);
                 let data = WinProbabilityData::new(self.game, self.selected_at_bat, table.height);
                 data.render_table(table, buf);
-                data.render_chart(chart, buf, self.symbols);
+                data.render_chart(chart, buf);
             }
             _ => (),
         }
@@ -93,7 +92,7 @@ impl<'a> WinProbabilityData<'a> {
             99.0..=100.0 => Color::Blue,
             45.0..=55.0 => GREEN,
             0.0..=0.99 => Color::Red,
-            _ => Color::White,
+            _ => TEXT_COLOR,
         };
 
         let leverage = at_bat.leverage_index;
@@ -105,7 +104,7 @@ impl<'a> WinProbabilityData<'a> {
         let leverage_color = if leverage > 2.0 {
             Color::Red
         } else {
-            Color::White
+            TEXT_COLOR
         };
 
         // -10.0 is the longest wpa possible because the smallest wpa possible is -99.9.
@@ -132,7 +131,7 @@ impl<'a> WinProbabilityData<'a> {
             Cell::from(format!("{:^5}", "wpa")),
             Cell::from(format!("{:<6}", "win")),
         ])
-        .style(Style::default().add_modifier(Modifier::BOLD | Modifier::UNDERLINED));
+        .style(header_style());
 
         let (start_idx, end_idx, selected_row_index) = self.calculate_visible_range();
 
@@ -157,8 +156,8 @@ impl<'a> WinProbabilityData<'a> {
                 Constraint::Min(6), // win %
             ],
         )
-        .style(Style::default().fg(Color::White))
-        .row_highlight_style(Style::default().bg(BLUE).add_modifier(Modifier::BOLD))
+        .style(Style::default())
+        .row_highlight_style(selected_style())
         .header(header);
 
         StatefulWidget::render(table, area, buf, &mut table_state);
@@ -173,20 +172,21 @@ impl<'a> WinProbabilityData<'a> {
     }
 
     fn create_header_bar(&self, width: u16) -> Bar<'_> {
+        let underline_color = TEXT_COLOR;
         Bar::default()
             .value(100)
             // use the width of the the area to ensure underline goes all the way across
             .text_value(format!("{: <1$}", "", width as usize))
             .value_style(
                 Style::default()
-                    .fg(Color::Gray)
                     .underlined()
-                    .underline_color(Color::White),
+                    .underline_color(underline_color)
+                    .fg(underline_color), // needs to be set for underline to work
             )
             .style(Style::default().fg(Color::Black))
     }
 
-    fn render_chart(&self, area: Rect, buf: &mut Buffer, _symbols: &Symbols) {
+    fn render_chart(&self, area: Rect, buf: &mut Buffer) {
         let (start_idx, end_idx, _) = self.calculate_visible_range();
 
         let bars: Vec<Bar> = self
@@ -208,7 +208,6 @@ impl<'a> WinProbabilityData<'a> {
             .direction(Direction::Horizontal)
             .bar_width(1)
             .bar_gap(0)
-            .value_style(Style::default().fg(BLUE).add_modifier(Modifier::BOLD))
             .max(100);
 
         Widget::render(chart, area, buf);
@@ -253,7 +252,7 @@ impl<'a> WinProbabilityData<'a> {
         }
     }
 
-    fn render_line_chart(&self, area: Rect, buf: &mut Buffer, symbols: &Symbols) {
+    fn render_line_chart(&self, area: Rect, buf: &mut Buffer) {
         let (points, x_axis_bounds) = self.prepare_chart_data();
 
         // split points into home and away teams so they can be different colors
@@ -262,32 +261,28 @@ impl<'a> WinProbabilityData<'a> {
 
         let inning_lines = self.generate_inning_lines();
         let datasets = self.create_datasets(&home_points, &away_points, &inning_lines);
-        let chart = self.create_chart(datasets, x_axis_bounds, symbols);
+        let chart = self.create_chart(datasets, x_axis_bounds);
 
         Widget::render(chart, area, buf);
     }
 
-    fn create_chart<'c>(
-        &self,
-        datasets: Vec<Dataset<'c>>,
-        x_axis_bounds: f64,
-        symbols: &Symbols,
-    ) -> Chart<'c> {
+    fn create_chart<'c>(&self, datasets: Vec<Dataset<'c>>, x_axis_bounds: f64) -> Chart<'c> {
         let team_span = |abbr: &'static str| -> Span<'static> {
-            if symbols.team_colors() {
-                team_colors::get(abbr, false)
-                    .map(|c| Span::styled(abbr, Style::default().fg(c)))
-                    .unwrap_or_else(|| Span::raw(abbr))
-            } else {
-                Span::raw(abbr)
-            }
+            team_colors::get(abbr, false)
+                .map(|c| Span::styled(abbr, Style::default().fg(c)))
+                .unwrap_or_else(|| Span::raw(abbr))
         };
 
         Chart::new(datasets)
             .block(
                 Block::default()
-                    .title(Line::from(" Game Win Probability ").centered())
-                    .borders(Borders::TOP),
+                    .title(
+                        Line::from(" Game Win Probability ")
+                            .centered()
+                            .fg(TEXT_COLOR),
+                    )
+                    .borders(Borders::TOP)
+                    .border_style(border_style()),
             )
             .x_axis(
                 Axis::default()

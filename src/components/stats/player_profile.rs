@@ -3,16 +3,13 @@ use crate::components::datetime::format_numeric_date_or;
 use crate::components::standings::Team;
 use crate::components::stats::splits::{RecentSplit, RecentStats, StatSplits};
 use crate::components::team_colors;
-use crate::components::util::{
-    DimColor, OptionDisplayExt, OptionMapDisplayExt, avg_color, era_color, obp_color, ops_color,
-    slg_color, whip_color,
-};
-use crate::symbols::Symbols;
-use crate::theme::Theme;
+use crate::components::util::{OptionDisplayExt, OptionMapDisplayExt};
+use crate::ui::palette;
+use crate::ui::styling::{DimStyle, avg_style, era_style, header_style};
 use mlbt_api::player::PersonFull;
 use mlbt_api::stats::{Split, StatSplit};
 use tui::layout::Constraint;
-use tui::prelude::{Line, Modifier, Span, Style, Stylize};
+use tui::prelude::{Line, Span, Style, Stylize};
 use tui::style::Color;
 use tui::widgets::{Cell, Row};
 
@@ -44,17 +41,23 @@ const SPLITS_PITCHING_HEADERS: &[&str] = &[
 ];
 const SPLITS_DURATION_WIDTH: u16 = 16;
 
-/// Player profile data for display. All fields are resolved from the API's optional fields with
-/// sensible defaults.
+/// Player profile data for display.
 pub struct PlayerProfile {
     pub id: u64,
     pub name: String,
     pub number: String,
     pub team: Team,
-    /// True when the player's current team is a minor-league affiliate.
     pub is_minor_league: bool,
     pub bio: Vec<Line<'static>>,
     pub splits: StatSplits,
+}
+
+/// Returns Style with palette color, or a default-text Style.
+fn stat_or_default(c: Option<Color>) -> Style {
+    match c {
+        Some(color) => Style::default().fg(color),
+        None => Style::default(),
+    }
 }
 
 impl PlayerProfile {
@@ -73,30 +76,24 @@ impl PlayerProfile {
         }
     }
 
-    /// Resolve the player's team. If their current team is a minor-league affiliate, look up the
-    /// MLB parent team instead.
     fn resolve_team(person: &PersonFull) -> (Team, bool) {
         let current = person.current_team.as_ref();
         let team_name = current.map(|t| t.name.as_str()).unwrap_or_default();
         let team = lookup_team(team_name);
 
-        // if lookup succeeded, this is an MLB team
         if team.id != 0 {
             return (team, false);
         }
 
-        // for an unknown team, check if it has a parent org id (which should be a MLB team)
         if let Some(parent_id) = current.and_then(|t| t.parent_org_id)
             && let Some(parent) = lookup_team_by_id(parent_id)
         {
             return (parent, true);
         }
 
-        // otherwise fallback to the default team
         (team, false)
     }
 
-    /// Extract the player info and format it into lines to be rendered as a paragraph.
     fn bio_lines(person: &PersonFull) -> Vec<Line<'static>> {
         let position = person
             .primary_position
@@ -123,7 +120,6 @@ impl PlayerProfile {
 
         let draft_year = person.draft_year.display_or("---");
         let mut draft = format!("Drafted: {draft_year}");
-        // find draft details for the player's draft year, if any
         if let Some(info) = person
             .drafts
             .as_deref()
@@ -144,7 +140,6 @@ impl PlayerProfile {
             format!("MLB Debut: {mlb_debut}").into(),
         ];
 
-        // TODO fetch IL info from the api with hydration=rosterEntries
         if let Some(active) = person.active {
             let status = if active { "Active" } else { "Inactive" };
             bio.push(format!("Status: {status}").into());
@@ -169,57 +164,49 @@ impl PlayerProfile {
         match &split.stat {
             StatSplit::Hitting(s) => {
                 cells.extend([
-                    Cell::from(s.games_played.to_string()).fg(s.games_played.dim_or(Color::White)),
-                    Cell::from(s.at_bats.to_string()).fg(s.at_bats.dim_or(Color::White)),
-                    Cell::from(s.avg.as_str())
-                        .fg(avg_color(s.avg.as_str()).unwrap_or(Color::White)),
-                    Cell::from(s.obp.as_str())
-                        .fg(obp_color(s.obp.as_str()).unwrap_or(Color::White)),
-                    Cell::from(s.slg.as_str())
-                        .fg(slg_color(s.slg.as_str()).unwrap_or(Color::White)),
-                    Cell::from(s.ops.as_str())
-                        .fg(ops_color(s.ops.as_str()).unwrap_or(Color::White)),
-                    Cell::from(s.runs.to_string()).fg(s.runs.dim_or(Color::White)),
-                    Cell::from(s.hits.to_string()).fg(s.hits.dim_or(Color::White)),
-                    Cell::from(s.doubles.to_string()).fg(s.doubles.dim_or(Color::White)),
-                    Cell::from(s.triples.to_string()).fg(s.triples.dim_or(Color::White)),
-                    Cell::from(s.home_runs.to_string()).fg(s.home_runs.dim_or(Color::White)),
-                    Cell::from(s.rbi.to_string()).fg(s.rbi.dim_or(Color::White)),
-                    Cell::from(s.base_on_balls.to_string())
-                        .fg(s.base_on_balls.dim_or(Color::White)),
-                    Cell::from(s.strike_outs.to_string()).fg(s.strike_outs.dim_or(Color::White)),
-                    Cell::from(s.stolen_bases.to_string()).fg(s.stolen_bases.dim_or(Color::White)),
+                    Cell::from(s.games_played.to_string()).style(s.games_played.dim_or_default()),
+                    Cell::from(s.at_bats.to_string()).style(s.at_bats.dim_or_default()),
+                    Cell::from(s.avg.as_str()).style(avg_style(&s.avg)),
+                    Cell::from(s.obp.as_str()).style(stat_or_default(palette::obp_color(&s.obp))),
+                    Cell::from(s.slg.as_str()).style(stat_or_default(palette::slg_color(&s.slg))),
+                    Cell::from(s.ops.as_str()).style(stat_or_default(palette::ops_color(&s.ops))),
+                    Cell::from(s.runs.to_string()).style(s.runs.dim_or_default()),
+                    Cell::from(s.hits.to_string()).style(s.hits.dim_or_default()),
+                    Cell::from(s.doubles.to_string()).style(s.doubles.dim_or_default()),
+                    Cell::from(s.triples.to_string()).style(s.triples.dim_or_default()),
+                    Cell::from(s.home_runs.to_string()).style(s.home_runs.dim_or_default()),
+                    Cell::from(s.rbi.to_string()).style(s.rbi.dim_or_default()),
+                    Cell::from(s.base_on_balls.to_string()).style(s.base_on_balls.dim_or_default()),
+                    Cell::from(s.strike_outs.to_string()).style(s.strike_outs.dim_or_default()),
+                    Cell::from(s.stolen_bases.to_string()).style(s.stolen_bases.dim_or_default()),
                     Cell::from(s.caught_stealing.to_string())
-                        .fg(s.caught_stealing.dim_or(Color::White)),
+                        .style(s.caught_stealing.dim_or_default()),
                 ]);
             }
             StatSplit::Pitching(s) => {
                 cells.extend([
-                    Cell::from(s.wins.to_string()).fg(s.wins.dim_or(Color::White)),
-                    Cell::from(s.losses.to_string()).fg(s.losses.dim_or(Color::White)),
-                    Cell::from(s.era.as_str())
-                        .fg(era_color(s.era.as_str()).unwrap_or(Color::White)),
-                    Cell::from(s.games_played.to_string()).fg(s.games_played.dim_or(Color::White)),
-                    Cell::from(s.games_started.to_string())
-                        .fg(s.games_started.dim_or(Color::White)),
-                    Cell::from(s.saves.to_string()).fg(s.saves.dim_or(Color::White)),
+                    Cell::from(s.wins.to_string()).style(s.wins.dim_or_default()),
+                    Cell::from(s.losses.to_string()).style(s.losses.dim_or_default()),
+                    Cell::from(s.era.as_str()).style(era_style(&s.era)),
+                    Cell::from(s.games_played.to_string()).style(s.games_played.dim_or_default()),
+                    Cell::from(s.games_started.to_string()).style(s.games_started.dim_or_default()),
+                    Cell::from(s.saves.to_string()).style(s.saves.dim_or_default()),
                     s.innings_pitched.as_str().into(),
-                    Cell::from(s.hits.to_string()).fg(s.hits.dim_or(Color::White)),
-                    Cell::from(s.runs.to_string()).fg(s.runs.dim_or(Color::White)),
-                    Cell::from(s.earned_runs.to_string()).fg(s.earned_runs.dim_or(Color::White)),
-                    Cell::from(s.home_runs.to_string()).fg(s.home_runs.dim_or(Color::White)),
-                    Cell::from(s.base_on_balls.to_string())
-                        .fg(s.base_on_balls.dim_or(Color::White)),
-                    Cell::from(s.strike_outs.to_string()).fg(s.strike_outs.dim_or(Color::White)),
+                    Cell::from(s.hits.to_string()).style(s.hits.dim_or_default()),
+                    Cell::from(s.runs.to_string()).style(s.runs.dim_or_default()),
+                    Cell::from(s.earned_runs.to_string()).style(s.earned_runs.dim_or_default()),
+                    Cell::from(s.home_runs.to_string()).style(s.home_runs.dim_or_default()),
+                    Cell::from(s.base_on_balls.to_string()).style(s.base_on_balls.dim_or_default()),
+                    Cell::from(s.strike_outs.to_string()).style(s.strike_outs.dim_or_default()),
                     Cell::from(s.whip.as_str())
-                        .fg(whip_color(s.whip.as_str()).unwrap_or(Color::White)),
+                        .style(stat_or_default(palette::whip_color(&s.whip))),
                 ]);
             }
         }
         cells
     }
 
-    fn game_log_cells<'a>(split: &'a Split, symbols: &Symbols) -> Vec<Cell<'a>> {
+    fn game_log_cells<'a>(split: &'a Split) -> Vec<Cell<'a>> {
         let date = format_numeric_date_or(split.date, "");
         let prefix = if split.is_home == Some(true) {
             "vs"
@@ -237,58 +224,50 @@ impl PlayerProfile {
             None => Cell::from("-"),
         };
 
-        let opp_cell = if symbols.team_colors() {
-            let color = team_colors::get(opp_abbr, false).unwrap_or(Color::White);
-            Cell::from(Line::from(vec![
-                Span::raw(format!("{prefix} ")),
-                Span::styled(opp_abbr, Style::default().fg(color)),
-            ]))
-        } else {
-            Cell::from(format!("{prefix} {opp_abbr}"))
-        };
+        let color = team_colors::get(opp_abbr, false).unwrap_or(Color::White);
+        let opp_cell = Cell::from(Line::from(vec![
+            Span::raw(format!("{prefix} ")),
+            Span::styled(opp_abbr, Style::default().fg(color)),
+        ]));
 
         let mut cells = vec![date.into(), result_cell, opp_cell];
 
         match &split.stat {
             StatSplit::Hitting(s) => {
                 cells.extend([
-                    Cell::from(s.at_bats.to_string()).fg(s.at_bats.dim_or(Color::White)),
-                    Cell::from(s.runs.to_string()).fg(s.runs.dim_or(Color::White)),
-                    Cell::from(s.hits.to_string()).fg(if s.hits >= 3 {
-                        Theme::GOOD
+                    Cell::from(s.at_bats.to_string()).style(s.at_bats.dim_or_default()),
+                    Cell::from(s.runs.to_string()).style(s.runs.dim_or_default()),
+                    Cell::from(s.hits.to_string()).style(if s.hits >= 3 {
+                        Style::default().fg(palette::GOOD)
                     } else {
-                        s.hits.dim_or(Color::White)
+                        s.hits.dim_or_default()
                     }),
-                    Cell::from(s.doubles.to_string()).fg(s.doubles.dim_or(Color::White)),
-                    Cell::from(s.triples.to_string()).fg(s.triples.dim_or(Color::White)),
-                    Cell::from(s.home_runs.to_string()).fg(if s.home_runs > 0 {
-                        Theme::GOOD
+                    Cell::from(s.doubles.to_string()).style(s.doubles.dim_or_default()),
+                    Cell::from(s.triples.to_string()).style(s.triples.dim_or_default()),
+                    Cell::from(s.home_runs.to_string()).style(if s.home_runs > 0 {
+                        Style::default().fg(palette::GOOD)
                     } else {
-                        Theme::DIMMED
+                        Style::default().fg(palette::DIMMED)
                     }),
-                    Cell::from(s.rbi.to_string()).fg(s.rbi.dim_or(Color::White)),
-                    Cell::from(s.base_on_balls.to_string())
-                        .fg(s.base_on_balls.dim_or(Color::White)),
-                    Cell::from(s.strike_outs.to_string()).fg(s.strike_outs.dim_or(Color::White)),
-                    Cell::from(s.stolen_bases.to_string()).fg(s.stolen_bases.dim_or(Color::White)),
+                    Cell::from(s.rbi.to_string()).style(s.rbi.dim_or_default()),
+                    Cell::from(s.base_on_balls.to_string()).style(s.base_on_balls.dim_or_default()),
+                    Cell::from(s.strike_outs.to_string()).style(s.strike_outs.dim_or_default()),
+                    Cell::from(s.stolen_bases.to_string()).style(s.stolen_bases.dim_or_default()),
                     Cell::from(s.caught_stealing.to_string())
-                        .fg(s.caught_stealing.dim_or(Color::White)),
-                    Cell::from(s.avg.as_str())
-                        .fg(avg_color(s.avg.as_str()).unwrap_or(Color::White)),
+                        .style(s.caught_stealing.dim_or_default()),
+                    Cell::from(s.avg.as_str()).style(avg_style(&s.avg)),
                 ]);
             }
             StatSplit::Pitching(s) => {
                 cells.extend([
                     s.innings_pitched.as_str().into(),
-                    Cell::from(s.hits.to_string()).fg(s.hits.dim_or(Color::White)),
-                    Cell::from(s.runs.to_string()).fg(s.runs.dim_or(Color::White)),
-                    Cell::from(s.earned_runs.to_string()).fg(s.earned_runs.dim_or(Color::White)),
-                    Cell::from(s.home_runs.to_string()).fg(s.home_runs.dim_or(Color::White)),
-                    Cell::from(s.base_on_balls.to_string())
-                        .fg(s.base_on_balls.dim_or(Color::White)),
-                    Cell::from(s.strike_outs.to_string()).fg(s.strike_outs.dim_or(Color::White)),
-                    Cell::from(s.era.as_str())
-                        .fg(era_color(s.era.as_str()).unwrap_or(Color::White)),
+                    Cell::from(s.hits.to_string()).style(s.hits.dim_or_default()),
+                    Cell::from(s.runs.to_string()).style(s.runs.dim_or_default()),
+                    Cell::from(s.earned_runs.to_string()).style(s.earned_runs.dim_or_default()),
+                    Cell::from(s.home_runs.to_string()).style(s.home_runs.dim_or_default()),
+                    Cell::from(s.base_on_balls.to_string()).style(s.base_on_balls.dim_or_default()),
+                    Cell::from(s.strike_outs.to_string()).style(s.strike_outs.dim_or_default()),
+                    Cell::from(s.era.as_str()).style(era_style(&s.era)),
                 ]);
             }
         }
@@ -301,7 +280,6 @@ impl PlayerProfile {
         cells
     }
 
-    /// Build header row, column widths, and data rows for a stat table.
     pub fn build_stat_rows(
         splits: &[Split],
         show_year: bool,
@@ -324,8 +302,7 @@ impl PlayerProfile {
         names.extend_from_slice(headers);
         widths.resize(names.len(), Constraint::Length(STAT_COL_WIDTH));
 
-        let header =
-            Row::new(names).style(Style::default().bold().add_modifier(Modifier::UNDERLINED));
+        let header = Row::new(names).style(header_style());
 
         let rows = splits
             .iter()
@@ -335,10 +312,8 @@ impl PlayerProfile {
         Some((header, widths, rows))
     }
 
-    /// Build header row, column widths, and data rows for the game log table.
     pub fn build_game_log_rows<'a>(
         splits: &'a [Split],
-        symbols: &Symbols,
     ) -> Option<(Row<'a>, Vec<Constraint>, Vec<Row<'a>>)> {
         let first = splits.first()?;
         let headers = if matches!(&first.stat, StatSplit::Hitting(_)) {
@@ -350,19 +325,17 @@ impl PlayerProfile {
         widths.extend_from_slice(GAME_LOG_PREFIX_WIDTHS);
         widths.resize(headers.len(), Constraint::Length(STAT_COL_WIDTH));
 
-        let header = Row::new(headers.to_vec())
-            .style(Style::default().bold().add_modifier(Modifier::UNDERLINED));
+        let header = Row::new(headers.to_vec()).style(header_style());
 
         let rows = splits
             .iter()
             .rev()
-            .map(|split| Row::new(Self::game_log_cells(split, symbols)))
+            .map(|split| Row::new(Self::game_log_cells(split)))
             .collect();
 
         Some((header, widths, rows))
     }
 
-    /// Build header row, column widths, and data rows for the recent splits table.
     pub fn build_splits_rows(
         recent_splits: &[RecentSplit],
         is_hitting: bool,
@@ -380,8 +353,7 @@ impl PlayerProfile {
         let mut widths = vec![Constraint::Length(SPLITS_DURATION_WIDTH)];
         widths.resize(headers.len(), Constraint::Length(STAT_COL_WIDTH));
 
-        let header = Row::new(headers.to_vec())
-            .style(Style::default().bold().add_modifier(Modifier::UNDERLINED));
+        let header = Row::new(headers.to_vec()).style(header_style());
 
         let rows = recent_splits
             .iter()
@@ -390,38 +362,36 @@ impl PlayerProfile {
                 match &split.stat {
                     Some(RecentStats::Hitting(s)) => {
                         cells.extend([
-                            Cell::from(s.ab.to_string()).fg(s.ab.dim_or(Color::White)),
-                            Cell::from(s.r.to_string()).fg(s.r.dim_or(Color::White)),
-                            Cell::from(s.h.to_string()).fg(s.h.dim_or(Color::White)),
-                            Cell::from(s.hr.to_string()).fg(s.hr.dim_or(Color::White)),
-                            Cell::from(s.rbi.to_string()).fg(s.rbi.dim_or(Color::White)),
-                            Cell::from(s.bb.to_string()).fg(s.bb.dim_or(Color::White)),
-                            Cell::from(s.so.to_string()).fg(s.so.dim_or(Color::White)),
-                            Cell::from(s.sb.to_string()).fg(s.sb.dim_or(Color::White)),
-                            Cell::from(s.avg.as_str())
-                                .fg(avg_color(s.avg.as_str()).unwrap_or(Color::White)),
+                            Cell::from(s.ab.to_string()).style(s.ab.dim_or_default()),
+                            Cell::from(s.r.to_string()).style(s.r.dim_or_default()),
+                            Cell::from(s.h.to_string()).style(s.h.dim_or_default()),
+                            Cell::from(s.hr.to_string()).style(s.hr.dim_or_default()),
+                            Cell::from(s.rbi.to_string()).style(s.rbi.dim_or_default()),
+                            Cell::from(s.bb.to_string()).style(s.bb.dim_or_default()),
+                            Cell::from(s.so.to_string()).style(s.so.dim_or_default()),
+                            Cell::from(s.sb.to_string()).style(s.sb.dim_or_default()),
+                            Cell::from(s.avg.as_str()).style(avg_style(&s.avg)),
                             Cell::from(s.obp.as_str())
-                                .fg(obp_color(s.obp.as_str()).unwrap_or(Color::White)),
+                                .style(stat_or_default(palette::obp_color(&s.obp))),
                             Cell::from(s.slg.as_str())
-                                .fg(slg_color(s.slg.as_str()).unwrap_or(Color::White)),
+                                .style(stat_or_default(palette::slg_color(&s.slg))),
                         ]);
                     }
                     Some(RecentStats::Pitching(s)) => {
                         cells.extend([
-                            Cell::from(s.w.to_string()).fg(s.w.dim_or(Color::White)),
-                            Cell::from(s.l.to_string()).fg(s.l.dim_or(Color::White)),
-                            Cell::from(s.era.as_str())
-                                .fg(era_color(s.era.as_str()).unwrap_or(Color::White)),
-                            Cell::from(s.g.to_string()).fg(s.g.dim_or(Color::White)),
-                            Cell::from(s.gs.to_string()).fg(s.gs.dim_or(Color::White)),
-                            Cell::from(s.sv.to_string()).fg(s.sv.dim_or(Color::White)),
+                            Cell::from(s.w.to_string()).style(s.w.dim_or_default()),
+                            Cell::from(s.l.to_string()).style(s.l.dim_or_default()),
+                            Cell::from(s.era.as_str()).style(era_style(&s.era)),
+                            Cell::from(s.g.to_string()).style(s.g.dim_or_default()),
+                            Cell::from(s.gs.to_string()).style(s.gs.dim_or_default()),
+                            Cell::from(s.sv.to_string()).style(s.sv.dim_or_default()),
                             s.ip.as_str().into(),
-                            Cell::from(s.h.to_string()).fg(s.h.dim_or(Color::White)),
-                            Cell::from(s.er.to_string()).fg(s.er.dim_or(Color::White)),
-                            Cell::from(s.bb.to_string()).fg(s.bb.dim_or(Color::White)),
-                            Cell::from(s.so.to_string()).fg(s.so.dim_or(Color::White)),
+                            Cell::from(s.h.to_string()).style(s.h.dim_or_default()),
+                            Cell::from(s.er.to_string()).style(s.er.dim_or_default()),
+                            Cell::from(s.bb.to_string()).style(s.bb.dim_or_default()),
+                            Cell::from(s.so.to_string()).style(s.so.dim_or_default()),
                             Cell::from(s.whip.as_str())
-                                .fg(whip_color(s.whip.as_str()).unwrap_or(Color::White)),
+                                .style(stat_or_default(palette::whip_color(&s.whip))),
                         ]);
                     }
                     None => {

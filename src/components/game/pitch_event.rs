@@ -71,7 +71,6 @@ impl PitchEvent {
         home_team: &Team,
         away_team: &Team,
         players: &PlayerMap,
-        symbols: &crate::symbols::Symbols,
     ) -> Option<Vec<Line<'_>>> {
         match self.event_type {
             PitchEventType::Pitch if self.pitch.is_some() => self
@@ -82,7 +81,6 @@ impl PitchEvent {
             _ => Some(self.format_non_pitch_event(
                 home_team.abbreviation,
                 away_team.abbreviation,
-                symbols,
             )),
         }
     }
@@ -91,7 +89,6 @@ impl PitchEvent {
         &self,
         home_team_abbreviation: &'static str,
         away_team_abbreviation: &'static str,
-        symbols: &crate::symbols::Symbols,
     ) -> Vec<Line<'_>> {
         let mut spans = Vec::new();
 
@@ -99,7 +96,7 @@ impl PitchEvent {
         let is_scoring = self.is_scoring.unwrap_or(false);
         if is_scoring {
             spans.push(Span::styled(
-                format!(" {}", symbols.scoring_play()),
+                format!(" {}", crate::symbols::scoring_play()),
                 Style::default().fg(BLUE),
             ));
         }

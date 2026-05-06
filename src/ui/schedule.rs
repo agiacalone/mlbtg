@@ -2,16 +2,15 @@ use crate::components::schedule::{Record, ScheduleRow, ScheduleState};
 use crate::components::standings::Team;
 use crate::components::team_colors;
 use crate::state::app_state::HomeOrAway;
-use crate::symbols::Symbols;
-use crate::theme::Theme;
+use crate::ui::palette;
+use crate::ui::styling::{border_style, dim_style, header_style};
 use tui::prelude::*;
 use tui::widgets::{Block, BorderType, Borders, Cell, Padding, Row, Table};
 
 const HEADER: &[&str; 8] = &["away", "", "", "home", "", "", "time", "status"];
 
-pub struct ScheduleWidget<'a> {
+pub struct ScheduleWidget {
     pub tz_abbreviation: String,
-    pub symbols: &'a Symbols,
     pub favorite_team: Option<Team>,
 }
 
@@ -35,7 +34,7 @@ impl ScheduleRow {
 
     fn get_styles(&self, team: HomeOrAway) -> (Style, Style) {
         let winning_team = self.winning_team();
-        let lose_style = Style::default().fg(Color::DarkGray);
+        let lose_style = dim_style();
         match winning_team {
             Some(winner) if winner == team => (Style::default(), Style::default()),
             None => (Style::default(), Style::default()),
@@ -43,20 +42,15 @@ impl ScheduleRow {
         }
     }
 
-    fn format<'a>(
-        &'a self,
-        width: u16,
-        symbols: &Symbols,
-        favorite_team: Option<Team>,
-    ) -> Vec<Span<'a>> {
+    fn format(&self, width: u16, favorite_team: Option<Team>) -> Vec<Span<'_>> {
         let (mut away_team_style, mut away_score_style) = self.get_styles(HomeOrAway::Away);
         let (mut home_team_style, mut home_score_style) = self.get_styles(HomeOrAway::Home);
 
-        // Bold live scores in Rainbow mode
+        // Bold live scores
         let is_live = self.home_score.is_some()
             && self.away_score.is_some()
             && !self.game_status.contains("Final");
-        if is_live && symbols.theme().use_backgrounds() {
+        if is_live {
             away_score_style = away_score_style.add_modifier(Modifier::BOLD);
             home_score_style = home_score_style.add_modifier(Modifier::BOLD);
             away_team_style = away_team_style.add_modifier(Modifier::BOLD);
@@ -69,7 +63,7 @@ impl ScheduleRow {
             .map(|t| t.id == self.away_team.id || t.id == self.home_team.id)
             .unwrap_or(false);
         let marker = if is_favorite {
-            symbols.favorite_marker()
+            crate::symbols::favorite_marker()
         } else {
             "  "
         };
@@ -80,15 +74,11 @@ impl ScheduleRow {
             (self.away_team.team_name, self.home_team.team_name)
         };
 
-        // Merge team color into base style when team colors are enabled
+        // Merge team color into base style — team colors always on
         let color_style = |base: Style, abbr: &str| -> Style {
-            if symbols.team_colors() {
-                team_colors::get(abbr, false)
-                    .map(|c| base.fg(c))
-                    .unwrap_or(base)
-            } else {
-                base
-            }
+            team_colors::get(abbr, false)
+                .map(|c| base.fg(c))
+                .unwrap_or(base)
         };
 
         vec![
@@ -110,7 +100,7 @@ impl ScheduleRow {
     }
 }
 
-impl StatefulWidget for ScheduleWidget<'_> {
+impl StatefulWidget for ScheduleWidget {
     type State = ScheduleState;
 
     fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
@@ -122,16 +112,10 @@ impl StatefulWidget for ScheduleWidget<'_> {
             }
         });
 
-        let header = Row::new(header_cells)
-            .height(1)
-            .style(Style::default().add_modifier(Modifier::BOLD | Modifier::UNDERLINED));
+        let header = Row::new(header_cells).height(1).style(header_style());
 
-        let use_bg = self.symbols.theme().use_backgrounds();
         let rows = state.schedule.iter().map(|r| {
-            let row = Row::new(r.format(area.width, self.symbols, self.favorite_team));
-            if !use_bg {
-                return row;
-            }
+            let row = Row::new(r.format(area.width, self.favorite_team));
             let is_fav = self
                 .favorite_team
                 .map(|t| t.id == r.away_team.id || t.id == r.home_team.id)
@@ -140,9 +124,9 @@ impl StatefulWidget for ScheduleWidget<'_> {
                 && r.away_score.is_some()
                 && !r.game_status.contains("Final");
             if is_fav {
-                row.style(Style::default().bg(Theme::FAVORITE_BG))
+                row.style(Style::default().bg(palette::FAVORITE_BG))
             } else if is_live {
-                row.style(Style::default().bg(Theme::LIVE_GAME_BG))
+                row.style(Style::default().bg(palette::LIVE_GAME_BG))
             } else {
                 row
             }
@@ -173,7 +157,6 @@ impl StatefulWidget for ScheduleWidget<'_> {
             Constraint::Length(12), // game time
             Constraint::Fill(1),    // game status
         ];
-        let selected_style = self.symbols.theme().selection_style();
 
         let t = Table::new(rows, widths)
             .header(header)
@@ -181,13 +164,14 @@ impl StatefulWidget for ScheduleWidget<'_> {
                 Block::default()
                     .borders(Borders::ALL)
                     .border_type(BorderType::Rounded)
+                    .border_style(border_style())
                     .padding(Padding::new(1, 1, 0, 0))
                     .title(Span::styled(
                         state.date_selector.format_date_border_title(),
-                        self.symbols.theme().title_style(),
+                        palette::title_style(),
                     )),
             )
-            .row_highlight_style(selected_style);
+            .row_highlight_style(palette::selection_style());
 
         StatefulWidget::render(t, area, buf, &mut state.state);
     }

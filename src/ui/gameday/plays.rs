@@ -1,6 +1,6 @@
 use crate::components::game::live_game::GameState;
 use crate::components::game::plays::PlayResult;
-use crate::theme::Theme;
+use crate::ui::palette;
 use std::vec;
 use tui::prelude::*;
 use tui::widgets::{Paragraph, Wrap};
@@ -9,20 +9,19 @@ use tui::widgets::{Paragraph, Wrap};
 // The green is used for pitches called as balls.
 // The red is used for pitches called as strikes.
 // The blue is used for contact (hit, out, run scoring).
-pub const GREEN: Color = Theme::POSITIVE;
-pub const BLUE: Color = Theme::EXCELLENT;
-pub const RED: Color = Theme::POOR;
+pub const GREEN: Color = palette::POSITIVE;
+pub const BLUE: Color = palette::EXCELLENT;
+pub const RED: Color = palette::POOR;
 
 pub struct InningPlaysWidget<'a> {
     pub game: &'a GameState,
     pub selected_at_bat: Option<u8>,
-    pub symbols: &'a crate::symbols::Symbols,
 }
 
 impl Widget for InningPlaysWidget<'_> {
     fn render(self, area: Rect, buf: &mut Buffer) {
         // TODO this doesn't scroll properly. needs to be a list for that
-        let inning_plays = format_plays(self.game, self.selected_at_bat, self.symbols);
+        let inning_plays = format_plays(self.game, self.selected_at_bat);
         let paragraph = Paragraph::new(inning_plays).wrap(Wrap { trim: false });
 
         Widget::render(paragraph, area, buf);
@@ -30,11 +29,7 @@ impl Widget for InningPlaysWidget<'_> {
 }
 
 /// Format the plays for the current inning as TUI Lines.
-fn format_plays<'a>(
-    game: &'a GameState,
-    selected_at_bat: Option<u8>,
-    symbols: &crate::symbols::Symbols,
-) -> Vec<Line<'a>> {
+fn format_plays(game: &GameState, selected_at_bat: Option<u8>) -> Vec<Line<'_>> {
     let (at_bat, _is_current) = game.get_at_bat_by_index_or_current(selected_at_bat);
     let inning = at_bat.inning;
 
@@ -69,7 +64,6 @@ fn format_plays<'a>(
             selected_at_bat,
             game.home_team.abbreviation,
             game.away_team.abbreviation,
-            symbols,
         ) {
             lines.push(line);
         }
@@ -83,7 +77,6 @@ fn build_line<'a>(
     selected_at_bat: Option<u8>,
     home_team_abbreviation: &'static str,
     away_team_abbreviation: &'static str,
-    symbols: &crate::symbols::Symbols,
 ) -> Option<Line<'a>> {
     let description = if play.description.is_empty() {
         "in progress..."
@@ -91,7 +84,7 @@ fn build_line<'a>(
         play.description.as_str()
     };
     let info = vec![
-        format_runs(play, selected_at_bat, symbols),
+        format_runs(play, selected_at_bat),
         Span::raw(" "),
         Span::raw(description),
         format_outs(play),
@@ -101,62 +94,28 @@ fn build_line<'a>(
 }
 
 /// If runs were scored display as blue scoring glyph(s). Otherwise use `event_label`.
-fn format_runs<'a>(
-    play: &'a PlayResult,
-    selected_at_bat: Option<u8>,
-    symbols: &crate::symbols::Symbols,
-) -> Span<'a> {
+fn format_runs<'a>(play: &'a PlayResult, selected_at_bat: Option<u8>) -> Span<'a> {
     let selected = selected_at_bat
         .map(|ab_idx| play.at_bat_index == ab_idx)
         .unwrap_or(false);
     if play.is_scoring_play {
-        let scoring = symbols.scoring_play();
+        let scoring = crate::symbols::scoring_play();
         // there could be no rbis on certain plays like a wild pitch but the symbol should still be shown
         let runs = if play.rbi == 0 { 1 } else { play.rbi as usize };
         let rbis = scoring.to_string().repeat(runs);
-        let cursor = symbols.selection_cursor();
+        let cursor = crate::symbols::selection_cursor();
         let text = match selected {
             true => format!("{cursor} {rbis}"),
             false => rbis,
         };
         Span::styled(text, Style::default().fg(BLUE))
     } else {
-        event_label(play, selected, symbols)
+        event_label(play, selected)
     }
 }
 
-/// Returns a fixed-width 3-char event label when nerd_fonts is enabled,
-/// or the original single-char prefix otherwise.
-fn event_label<'a>(
-    play: &'a PlayResult,
-    selected: bool,
-    symbols: &crate::symbols::Symbols,
-) -> Span<'a> {
-    if !symbols.nerd_fonts() {
-        // Original behavior: cursor char or dash
-        let cursor = symbols.selection_cursor();
-        let mut color = Color::White;
-        if play.is_out {
-            color = RED;
-        }
-        let code = play.events.last().and_then(|e| e.code.as_deref());
-        if let Some("D") = code {
-            color = BLUE;
-        }
-        if let Some("H") = code {
-            color = GREEN;
-        }
-        if play.count.balls == 4 {
-            color = GREEN;
-        } else if play.count.strikes == 3 {
-            color = RED;
-        }
-        return match selected {
-            true => Span::raw(cursor.to_string()).fg(color).bold(),
-            false => Span::raw("-").fg(color),
-        };
-    }
-
+/// Returns a fixed-width 3-char event label.
+fn event_label<'a>(play: &'a PlayResult, selected: bool) -> Span<'a> {
     let code = play.events.last().and_then(|e| e.code.as_deref());
     let (label, color): (&'static str, Color) = if play.count.strikes == 3 {
         ("  K", RED)

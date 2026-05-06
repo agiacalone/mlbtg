@@ -77,10 +77,10 @@ impl std::ops::Not for Order {
 
 impl Order {
     /// Returns an arrow character representing the direction.
-    pub fn arrow_symbol(&self, symbols: &crate::symbols::Symbols) -> &'static str {
+    pub fn arrow_symbol(&self) -> &'static str {
         match self {
-            Order::Ascending => symbols.sort_asc(),
-            Order::Descending => symbols.sort_desc(),
+            Order::Ascending => crate::symbols::sort_asc(),
+            Order::Descending => crate::symbols::sort_desc(),
         }
     }
 }

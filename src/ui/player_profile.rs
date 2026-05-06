@@ -1,9 +1,9 @@
 use crate::components::stats::player_profile::PlayerProfile;
 use crate::components::team_colors;
 use crate::state::player_profile::PlayerProfileState;
-use crate::symbols::Symbols;
-use crate::theme::Theme;
+use crate::ui::palette;
 use crate::ui::scroll::{ScrollParams, adjust_area_for_scroll, render_scrollbar};
+use crate::ui::styling::{border_style, dim_style};
 use mlbt_api::client::StatGroup;
 use mlbt_api::season::GameType;
 use mlbt_api::stats::Split;
@@ -12,7 +12,6 @@ use tui::widgets::{Block, BorderType, Borders, Padding, Paragraph, Row, Table};
 
 pub struct PlayerProfileWidget<'a> {
     pub state: &'a mut PlayerProfileState,
-    pub symbols: &'a Symbols,
 }
 
 impl Widget for PlayerProfileWidget<'_> {
@@ -22,11 +21,12 @@ impl Widget for PlayerProfileWidget<'_> {
         let block = Block::default()
             .borders(Borders::ALL)
             .border_type(BorderType::Rounded)
+            .border_style(border_style())
             .padding(Padding::new(1, 1, 0, 0))
             .title(Line::from(vec![
                 Span::styled(
                     format!(" #{} {} ", profile.number, profile.name),
-                    self.symbols.theme().title_style(),
+                    palette::title_style(),
                 ),
                 Span::styled(
                     if profile.is_minor_league {
@@ -35,12 +35,8 @@ impl Widget for PlayerProfileWidget<'_> {
                         format!(" {} ", profile.team.abbreviation)
                     },
                     {
-                        let bg = if self.symbols.team_colors() {
-                            team_colors::get(profile.team.abbreviation, false)
-                                .unwrap_or(Color::Cyan)
-                        } else {
-                            Color::Cyan
-                        };
+                        let bg = team_colors::get(profile.team.abbreviation, false)
+                            .unwrap_or(Color::Cyan);
                         Style::default().fg(Color::Black).bg(bg)
                     },
                 ),
@@ -113,7 +109,7 @@ impl Widget for PlayerProfileWidget<'_> {
         }
 
         self.state.sync_scrollbar();
-        render_scrollbar(inner, &mut self.state.scroll_state, self.symbols, buf);
+        render_scrollbar(inner, &mut self.state.scroll_state, buf);
     }
 }
 
@@ -129,8 +125,8 @@ impl PlayerProfileWidget<'_> {
     }
 
     fn render_game_type_selector(&self, area: Rect, buf: &mut Buffer) {
-        let selected = self.symbols.theme().selection_style();
-        let normal = Style::default().fg(self.symbols.theme().dimmed());
+        let selected = palette::selection_style();
+        let normal = dim_style();
 
         let (reg_style, st_style) = match self.state.game_type {
             GameType::RegularSeason => (selected, normal),
@@ -148,16 +144,7 @@ impl PlayerProfileWidget<'_> {
     fn render_season(&self, area: Rect, skip: u16, buf: &mut Buffer) {
         let title = format!("{} Season", self.state.season_year);
         let splits = &self.state.profile.splits.season;
-        render_stat_table(
-            &title,
-            splits,
-            None,
-            false,
-            self.symbols.theme(),
-            area,
-            skip,
-            buf,
-        );
+        render_stat_table(&title, splits, None, false, area, skip, buf);
     }
 
     fn render_career(&self, area: Rect, skip: u16, buf: &mut Buffer) {
@@ -173,7 +160,6 @@ impl PlayerProfileWidget<'_> {
                 &splits.year_by_year,
                 career_totals,
                 true,
-                self.symbols.theme(),
                 area,
                 skip,
                 buf,
@@ -187,46 +173,24 @@ impl PlayerProfileWidget<'_> {
         if let Some((header, widths, rows)) =
             PlayerProfile::build_splits_rows(recent_splits, is_hitting)
         {
-            render_table_with_title(
-                "Splits",
-                header,
-                widths,
-                rows,
-                self.symbols.theme(),
-                area,
-                skip,
-                buf,
-            );
+            render_table_with_title("Splits", header, widths, rows, area, skip, buf);
         }
     }
 
     fn render_game_log(&self, area: Rect, skip: u16, buf: &mut Buffer) {
         let splits = &self.state.profile.splits.game_log;
-        if let Some((header, widths, rows)) =
-            PlayerProfile::build_game_log_rows(splits, self.symbols)
-        {
-            render_table_with_title(
-                "Recent Games",
-                header,
-                widths,
-                rows,
-                self.symbols.theme(),
-                area,
-                skip,
-                buf,
-            );
+        if let Some((header, widths, rows)) = PlayerProfile::build_game_log_rows(splits) {
+            render_table_with_title("Recent Games", header, widths, rows, area, skip, buf);
         }
     }
 }
 
 /// Render a stat section with a title, header, data rows, and optional career totals.
-#[allow(clippy::too_many_arguments)]
 fn render_stat_table(
     title: &str,
     splits: &[Split],
     career: Option<&Vec<Split>>,
     show_year: bool,
-    theme: &Theme,
     area: Rect,
     skip: u16,
     buf: &mut Buffer,
@@ -238,12 +202,8 @@ fn render_stat_table(
         if skip == 0 {
             let [title_area, msg_area] =
                 Layout::vertical([Constraint::Length(1), Constraint::Length(1)]).areas(area);
-            render_section_title(title, theme, title_area, buf);
-            Paragraph::new(Span::styled(
-                "  No data",
-                Style::default().fg(theme.dimmed()),
-            ))
-            .render(msg_area, buf);
+            render_section_title(title, title_area, buf);
+            Paragraph::new(Span::styled("  No data", dim_style())).render(msg_area, buf);
         }
         return;
     }
@@ -254,18 +214,16 @@ fn render_stat_table(
                 Row::new(PlayerProfile::career_total_cells(total)).style(Style::default().bold()),
             );
         }
-        render_table_with_title(title, header, widths, rows, theme, area, skip, buf);
+        render_table_with_title(title, header, widths, rows, area, skip, buf);
     }
 }
 
 /// Render a titled table, handling scroll clipping of the title row.
-#[allow(clippy::too_many_arguments)]
 fn render_table_with_title<'a>(
     title: &str,
     header: Row<'a>,
     widths: Vec<Constraint>,
     rows: Vec<Row<'a>>,
-    theme: &Theme,
     area: Rect,
     skip: u16,
     buf: &mut Buffer,
@@ -273,7 +231,7 @@ fn render_table_with_title<'a>(
     if skip == 0 {
         let [title_area, table_area] =
             Layout::vertical([Constraint::Length(1), Constraint::Fill(1)]).areas(area);
-        render_section_title(title, theme, title_area, buf);
+        render_section_title(title, title_area, buf);
         let table = Table::new(rows, widths).header(header).column_spacing(0);
         Widget::render(table, table_area, buf);
     } else {
@@ -285,10 +243,10 @@ fn render_table_with_title<'a>(
     }
 }
 
-fn render_section_title(title: &str, theme: &Theme, area: Rect, buf: &mut Buffer) {
+fn render_section_title(title: &str, area: Rect, buf: &mut Buffer) {
     Paragraph::new(Line::from(Span::styled(
         format!(" {title} "),
-        theme.selection_style(),
+        palette::selection_style(),
     )))
     .render(area, buf);
 }

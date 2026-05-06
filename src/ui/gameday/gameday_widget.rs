@@ -3,7 +3,6 @@ use crate::draw;
 use crate::state::app_state::HomeOrAway;
 use crate::state::boxscore::BoxscoreState;
 use crate::state::gameday::GamedayState;
-use crate::symbols::Symbols;
 use crate::ui::boxscore::TeamBatterBoxscoreWidget;
 use crate::ui::gameday::at_bat::AtBatWidget;
 use crate::ui::gameday::matchup::MatchupWidget;
@@ -11,13 +10,12 @@ use crate::ui::gameday::plays::InningPlaysWidget;
 use crate::ui::gameday::win_probability::WinProbabilityWidget;
 use crate::ui::layout::LayoutAreas;
 use crate::ui::linescore::LineScoreWidget;
-use tui::prelude::{Buffer, Color, Rect, Widget};
+use tui::prelude::{Buffer, Rect, Widget};
 
 pub struct GamedayWidget<'a> {
     pub state: &'a GamedayState,
     pub boxscore_state: &'a mut BoxscoreState,
     pub active: HomeOrAway,
-    pub symbols: &'a Symbols,
 }
 
 impl Widget for GamedayWidget<'_> {
@@ -34,14 +32,12 @@ impl Widget for GamedayWidget<'_> {
 
             let linescore_widget = LineScoreWidget {
                 linescore: &self.state.game.linescore,
-                symbols: self.symbols,
             };
             Widget::render(linescore_widget, chunks[0], buf);
 
             let boxscore_widget = TeamBatterBoxscoreWidget {
                 active: self.active,
                 state: self.boxscore_state,
-                symbols: self.symbols,
             };
             Widget::render(boxscore_widget, chunks[1], buf);
         }
@@ -53,14 +49,12 @@ impl Widget for GamedayWidget<'_> {
             let matchup_widget = MatchupWidget {
                 game: &self.state.game,
                 selected_at_bat: self.state.selected_at_bat(),
-                symbols: self.symbols,
             };
             Widget::render(matchup_widget, matchup, buf);
 
             let at_bat_widget = AtBatWidget {
                 game: &self.state.game,
                 selected_at_bat: self.state.selected_at_bat(),
-                symbols: self.symbols,
             };
             Widget::render(at_bat_widget, at_bat, buf);
         }
@@ -72,7 +66,6 @@ impl Widget for GamedayWidget<'_> {
             let innings_widget = InningPlaysWidget {
                 game: &self.state.game,
                 selected_at_bat: self.state.selected_at_bat(),
-                symbols: self.symbols,
             };
             Widget::render(innings_widget, chunks[0], buf);
 
@@ -81,7 +74,6 @@ impl Widget for GamedayWidget<'_> {
                     game: &self.state.game,
                     selected_at_bat: self.state.selected_at_bat(),
                     active_tab: MenuItem::Gameday,
-                    symbols: self.symbols,
                 };
                 Widget::render(wps_widget, chunks[1], buf);
             }
@@ -91,7 +83,7 @@ impl Widget for GamedayWidget<'_> {
 
 impl GamedayWidget<'_> {
     fn draw_border(area: Rect, buf: &mut Buffer) {
-        let block = draw::default_border(Color::White);
+        let block = draw::default_border();
         Widget::render(block, area, buf);
     }
 }

@@ -9,40 +9,30 @@ MLB in your terminal — gameday, scores, stats, standings, teams, and player
 profiles. Powered by MLB's public Stats API, browse today's games or dig through
 decades of historical data.
 
+**Requirements:** a Nerd Font terminal (e.g. Iosevka Nerd Font, JetBrainsMono Nerd Font). Color and glyphs are unconditional.
+
 ## Why this fork?
 
-The upstream app is excellent. This fork layers on optional visual tools that
-make dense baseball data easier to scan:
+Upstream is the **frame**; this fork is the **layer**. The aesthetic target is
+hot-metal-compositor newspaper typography — density over chrome, glyphs as
+marks, color as signal:
 
-- **Color themes** (lean / classic / rainbow) inspired by
-  [Powerlevel10k](https://github.com/romkatv/powerlevel10k) and
-  [Fangraphs](https://www.fangraphs.com/) — stat cells light up by tier so
+- **Fangraphs-style stat tiers** — blue→amber→red coloring on stat cells so
   outliers jump off the screen.
 - **Nerd Font glyphs** — weather icons, base runner diamonds, play-by-play
-  labels (K, BB, 2B, HR), tab icons. Symbols convey meaning faster than text
-  in a dense layout.
+  labels (K, BB, 2B, HR), live-game marks, tab icons.
 - **Team colors** on names in the scoreboard and standings.
 - **Weather conditions** shown in the gameday matchup and scoreboard.
 
-Color and glyphs are redundant encoding channels. Color highlights stat tiers at
-a glance; glyphs provide the same signal for users on low-contrast displays or
-who can't distinguish colors. Text labels are always present — nothing relies on
-a single visual channel.
+Glyphs and rich color are unconditional — a Nerd Font terminal is required.
 
-**All additions are off by default.** Without any config changes the app behaves
-identically to upstream.
+### Scoreboard
 
-### Scoreboard — rainbow theme
+![Scoreboard showing team colors, stat backgrounds, and weather](images/scoreboard-rainbow-large.png)
 
-![Scoreboard with rainbow theme showing team colors, stat backgrounds, and weather](images/scoreboard-rainbow-large.png)
+### Gameday
 
-### Scoreboard — lean theme
-
-![Scoreboard with lean theme showing minimal styling](images/scoreboard-lean-small.png)
-
-### Gameday — rainbow theme
-
-![Gameday view with rainbow theme showing play-by-play labels, strike zone, and weather](images/gameday-rainbow-small.png)
+![Gameday view showing play-by-play labels, strike zone, and weather](images/gameday-rainbow-small.png)
 
 ## Installation
 
@@ -96,9 +86,8 @@ docker run -it --rm -v ~/.config/mlbt:/root/.config/mlbt mlbtg
 
 - **Player profile** — bio, career stats, splits, recent games.
 
-- **Visual customization** — three color themes (lean / classic / rainbow),
-  optional Nerd Font icons, optional team colors, favorite team highlighting.
-  All configurable via a single TOML file.
+- **Favorite team highlighting** — set your team in the config to sort it first
+  in the scoreboard and highlight it in standings.
 
 ## Usage
 
@@ -229,9 +218,6 @@ The config file is located at:
 |---------|-------------|---------|
 | `favorite_team` | Your team — sorted first in schedule, highlighted in standings. TUI: picker shows all 30 teams. Manually: use the full name (e.g. `"San Francisco Giants"`). | none |
 | `timezone` | Game time display. TUI: picker covers common zones. Manually: any value from the [tz database](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones). | `"US/Pacific"` |
-| `nerd_fonts` | Enable [Nerd Font](https://www.nerdfonts.com/) icons — tabs, weather, bases, play labels. Requires a Nerd Font in your terminal. | `false` |
-| `team_colors` | Color team names by their primary color in scoreboard, standings, and gameday. | `false` |
-| `theme` | Color tier: `"lean"` (stock look), `"classic"` (warm accents + stat colors), `"rainbow"` (stat backgrounds + live game highlights). | `"classic"` |
 | `log_level` | `"off"`, `"trace"`, `"debug"`, `"info"`, `"warn"`, `"error"`. | `"error"` |
 
 ### Example
@@ -239,9 +225,6 @@ The config file is located at:
 ```toml
 favorite_team = "San Francisco Giants"
 timezone = "US/Pacific"
-nerd_fonts = true
-team_colors = true
-theme = "classic"
 ```
 
 ## Acknowledgments

@@ -1,12 +1,9 @@
-use mlbt_api::live::LiveResponse;
-
 use crate::components::standings::Team;
 use crate::components::team_colors;
-use crate::components::util::DimColor;
 use crate::state::app_state::HomeOrAway;
-use crate::symbols::Symbols;
-use tui::prelude::Stylize;
-use tui::style::{Color, Modifier, Style};
+use crate::ui::styling::DimStyle;
+use mlbt_api::live::LiveResponse;
+use tui::style::{Modifier, Style};
 use tui::text::Span;
 use tui::widgets::Cell;
 
@@ -96,25 +93,19 @@ impl LineScoreLine {
         line
     }
 
-    pub fn create_score_vec(&self, won: bool, symbols: &Symbols) -> Vec<Cell<'_>> {
+    pub fn create_score_vec(&self, won: bool) -> Vec<Cell<'_>> {
         let mut row = vec![];
-        let team = if symbols.team_colors() {
-            let base_style = team_colors::get(&self.abbreviation, false)
-                .map(|c| Style::default().fg(c))
-                .unwrap_or_default();
-            let style = if won { base_style.bold() } else { base_style };
-            Span::styled(self.abbreviation.clone(), style)
-        } else if won {
-            Span::raw(self.abbreviation.clone()).bold()
-        } else {
-            Span::raw(self.abbreviation.clone())
-        };
+        let base_style = team_colors::get(&self.abbreviation, false)
+            .map(|c| Style::default().fg(c))
+            .unwrap_or_default();
+        let style = if won { base_style.bold() } else { base_style };
+        let team = Span::styled(self.abbreviation.clone(), style);
         row.push(Cell::from(team));
 
         let scores = self
             .inning_score
             .iter()
-            .map(|&s| Cell::from(s.to_string()).fg(s.dim_or(Color::White)))
+            .map(|&s| Cell::from(s.to_string()).style(s.dim_or_default()))
             .collect::<Vec<_>>();
         row.extend(scores);
 

@@ -1,11 +1,8 @@
 use crate::components::stats::table::TeamOrPlayer;
 use crate::components::stats::{STATS_DEFAULT_COL_WIDTH, STATS_FIRST_COL_WIDTH};
-use crate::components::util::{
-    DimColor, avg_color, era_color, obp_color, ops_color, slg_color, whip_color,
-};
 use crate::state::stats::{ActivePane, StatsState};
-use crate::symbols::Symbols;
-use crate::theme::Theme;
+use crate::ui::palette;
+use crate::ui::styling::{DimStyle, border_style, dim_style, header_style};
 use mlbt_api::client::{Qualification, StatGroup};
 use tui::prelude::*;
 use tui::widgets::{Block, BorderType, Borders, Cell, Padding, Paragraph, Row, Table};
@@ -13,11 +10,9 @@ use tui::widgets::{Block, BorderType, Borders, Cell, Padding, Paragraph, Row, Ta
 pub const STATS_OPTIONS_WIDTH: u16 = 36;
 
 /// Renders the stats data table (left pane).
-pub struct StatsDataWidget<'a> {
-    pub symbols: &'a Symbols,
-}
+pub struct StatsDataWidget {}
 
-impl StatefulWidget for StatsDataWidget<'_> {
+impl StatefulWidget for StatsDataWidget {
     type State = StatsState;
 
     fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
@@ -55,40 +50,39 @@ impl StatefulWidget for StatsDataWidget<'_> {
                 if name == sort_column {
                     Cell::from(format!(
                         "{name} {}",
-                        state.table.sorting.order.arrow_symbol(self.symbols)
+                        state.table.sorting.order.arrow_symbol()
                     ))
-                    .style(self.symbols.theme().selection_style())
+                    .style(palette::selection_style())
                 } else {
                     Cell::from(name.as_str())
                 }
             })
             .collect::<Row>()
             .height(1)
-            .style(Style::default().add_modifier(Modifier::BOLD | Modifier::UNDERLINED));
+            .style(header_style());
 
-        let theme = self.symbols.theme();
         let rows: Vec<Row> = rows
             .iter()
             .map(|row| {
                 row.iter()
                     .enumerate()
                     .map(|(i, cell)| {
-                        let color = if Some(i) == avg_idx {
-                            avg_color(cell).unwrap_or_default()
+                        let style = if Some(i) == avg_idx {
+                            palette::stat_style(palette::avg_color(cell).unwrap_or(Color::White))
                         } else if Some(i) == era_idx {
-                            era_color(cell).unwrap_or(Color::White)
+                            palette::stat_style(palette::era_color(cell).unwrap_or(Color::White))
                         } else if Some(i) == obp_idx {
-                            obp_color(cell).unwrap_or(Color::White)
+                            palette::stat_style(palette::obp_color(cell).unwrap_or(Color::White))
                         } else if Some(i) == slg_idx {
-                            slg_color(cell).unwrap_or(Color::White)
+                            palette::stat_style(palette::slg_color(cell).unwrap_or(Color::White))
                         } else if Some(i) == ops_idx {
-                            ops_color(cell).unwrap_or(Color::White)
+                            palette::stat_style(palette::ops_color(cell).unwrap_or(Color::White))
                         } else if Some(i) == whip_idx {
-                            whip_color(cell).unwrap_or(Color::White)
+                            palette::stat_style(palette::whip_color(cell).unwrap_or(Color::White))
                         } else {
-                            cell.as_str().dim_or(Color::default())
+                            cell.as_str().dim_or_default()
                         };
-                        Cell::from(cell.as_str()).style(theme.stat_style(color))
+                        Cell::from(cell.as_str()).style(style)
                     })
                     .collect::<Row>()
             })
@@ -112,14 +106,15 @@ impl StatefulWidget for StatsDataWidget<'_> {
                 Block::default()
                     .borders(Borders::ALL)
                     .border_type(BorderType::Rounded)
+                    .border_style(border_style())
                     .padding(Padding::new(1, 1, 0, 0))
                     .title(Span::styled(
                         state.date_selector.format_date_border_title(),
-                        self.symbols.theme().title_style(),
+                        palette::title_style(),
                     )),
             );
         if state.active_pane == ActivePane::Data {
-            t = t.row_highlight_style(self.symbols.theme().selection_style());
+            t = t.row_highlight_style(palette::selection_style());
         }
 
         // borders (2) + header (1) = 3 rows of overhead
@@ -130,11 +125,9 @@ impl StatefulWidget for StatsDataWidget<'_> {
 }
 
 /// Renders the options sidebar (right pane).
-pub struct StatsOptionsWidget<'a> {
-    pub symbols: &'a Symbols,
-}
+pub struct StatsOptionsWidget {}
 
-impl StatefulWidget for StatsOptionsWidget<'_> {
+impl StatefulWidget for StatsOptionsWidget {
     type State = StatsState;
 
     fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
@@ -144,7 +137,7 @@ impl StatefulWidget for StatsOptionsWidget<'_> {
         // hitting | pitching
         //    team | player
         //     all | qualified
-        let highlight = self.symbols.theme().selection_style();
+        let highlight = palette::selection_style();
         let (hitting_style, pitching_style) = match state.stat_type.group {
             StatGroup::Pitching => (Style::default(), highlight),
             StatGroup::Hitting => (highlight, Style::default()),
@@ -156,7 +149,7 @@ impl StatefulWidget for StatsOptionsWidget<'_> {
 
         let is_team = state.stat_type.team_player == TeamOrPlayer::Team;
         let dim_if_team = if is_team {
-            Style::default().fg(Theme::DIMMED)
+            dim_style()
         } else {
             Style::default()
         };
@@ -172,7 +165,8 @@ impl StatefulWidget for StatsOptionsWidget<'_> {
 
         let block = Block::default()
             .borders(Borders::ALL)
-            .border_type(BorderType::Rounded);
+            .border_type(BorderType::Rounded)
+            .border_style(border_style());
         let inner = block.inner(stats_rect);
         block.render(stats_rect, buf);
 
@@ -228,7 +222,8 @@ impl StatefulWidget for StatsOptionsWidget<'_> {
             Block::default()
                 .padding(Padding::new(1, 1, 0, 0))
                 .borders(Borders::ALL)
-                .border_type(BorderType::Rounded),
+                .border_type(BorderType::Rounded)
+                .border_style(border_style()),
         );
         if state.active_pane == ActivePane::Options {
             t = t.row_highlight_style(highlight);

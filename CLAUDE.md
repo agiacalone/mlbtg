@@ -4,9 +4,18 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-`mlbtg` is Anthony's fork of [mlb-rs/mlbt](https://github.com/mlb-rs/mlbt) — a ratatui terminal UI for MLB's Stats API. The fork layers visual-accessibility additions (color themes, Nerd Font glyphs, team colors, weather) on top of upstream. **All additions are off by default** — without config changes, behavior matches upstream.
+`mlbtg` is Anthony's fork of [mlb-rs/mlbt](https://github.com/mlb-rs/mlbt) — a ratatui terminal UI for MLB's Stats API. Upstream is the **frame**; our work is the **layer**. We do not feed PRs back to upstream and we do not gate features behind opt-in flags. Glyphs and color are the product — a Nerd Font terminal is required.
 
 The binary is named `mlbtg` but the config app name is still `mlbt` (config path: `~/.config/mlbt/mlbt.toml`).
+
+## Design north star
+
+The aesthetic target is hot-metal-compositor newspaper typography. Color is **signal**, not decoration: the Fangraphs blue→amber→red scale carries stat tier; W/L is green/red; live state has its own glyph. Glyphs are **marks**: ⚾ for live, ⚑ for final, manicules for current at-bat, dagger for ejected. Density over chrome — the stathead reads at a glance.
+
+## Frame and layer
+
+- **Frame** — `src/ui/styling.rs` is upstream-owned. Do not edit beyond the inner `#![allow(dead_code)]` attribute that lets us tolerate items that are shadowed by our layer. Cherry-pick upstream styling work onto it as fast-forwards.
+- **Layer** — `src/ui/palette.rs` and `src/symbols.rs` are ours. Stat tier colors, weather scales, semantic backgrounds, chrome accents, and glyph lookups live here. Override or shadow frame helpers at the *callsite import line*; do not push our behavior into the frame file.
 
 ## Workspace layout
 
@@ -23,7 +32,8 @@ Cargo workspace with two members:
 - `ui/` — ratatui rendering for each surface
 - `draw.rs` — top-level draw dispatch
 - `keys.rs` — key bindings → state mutations / network requests
-- `theme.rs`, `symbols.rs`, `config.rs` — color tiers, Nerd Font glyphs, TOML config loader
+- `symbols.rs`, `config.rs` — Nerd Font glyphs, TOML config loader
+- `ui/styling.rs`, `ui/palette.rs` — chrome (frame, upstream-owned) and color identity (layer, ours)
 
 Architecture is event-driven: `UiEvent` (key/resize) → state mutations → `NetworkRequest` → `NetworkResponse` → state update → redraw. Each tab owns its own date independent of the scoreboard.
 
@@ -58,7 +68,7 @@ CI (`.github/workflows/ci.yml`) runs fmt + clippy + tests + docker build on ever
 
 - Look for existing patterns before introducing new ones; shared color/display helpers live in `src/components/util.rs`.
 - Match the style of surrounding code.
-- Color and glyphs are **redundant** encoding — never make meaning depend on color alone. Text labels stay present; glyphs gate behind `nerd_fonts`; team colors gate behind `team_colors`; stat-tier coloring gates behind `theme` levels (`lean` / `classic` / `rainbow`).
+- Color is **signal**, not decoration. Stat-tier coloring follows the Fangraphs blue→amber→red scale via `crate::ui::palette`. Mid-range values fall back to terminal-default text color. Glyphs are unconditional Nerd Font icons; do not add ASCII fallbacks.
 - Branches off `main`; PRs squash-merged; include screenshots for visual changes.
 
 ## Working with this fork

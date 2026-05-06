@@ -1,18 +1,14 @@
 use crate::components::linescore::LineScore;
-use crate::symbols::Symbols;
-
+use crate::ui::styling::{header_style, text_style};
 use tui::{
     buffer::Buffer,
     layout::{Constraint, Rect},
-    style::{Color, Modifier, Style},
     widgets::{Block, Borders, Row, Table, Widget},
 };
-
 // TODO depending on the terminal size the number of columns display should be changed. Only two columns *need* to be shown, the current inning and the run totals - eveything else can get chopped off.
 
 pub struct LineScoreWidget<'a> {
     pub linescore: &'a LineScore,
-    pub symbols: &'a Symbols,
 }
 
 impl Widget for LineScoreWidget<'_> {
@@ -30,19 +26,19 @@ impl Widget for LineScoreWidget<'_> {
 
         let header = Row::new(self.linescore.header.clone())
             .height(1)
-            .style(Style::default().add_modifier(Modifier::BOLD | Modifier::UNDERLINED));
+            .style(header_style());
 
         let away_won = self.linescore.away.runs > self.linescore.home.runs;
         let home_won = self.linescore.home.runs > self.linescore.away.runs;
         let t = Table::new(
             vec![
-                Row::new(self.linescore.away.create_score_vec(away_won, self.symbols)),
-                Row::new(self.linescore.home.create_score_vec(home_won, self.symbols)),
+                Row::new(self.linescore.away.create_score_vec(away_won)),
+                Row::new(self.linescore.home.create_score_vec(home_won)),
             ],
             widths.as_slice(),
         )
         .column_spacing(0)
-        .style(Style::default().fg(Color::White))
+        .style(text_style())
         .header(header)
         .block(Block::default().borders(Borders::NONE));
 

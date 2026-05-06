@@ -5,7 +5,6 @@ mod draw;
 mod keys;
 mod state;
 mod symbols;
-mod theme;
 mod ui;
 
 use crate::app::App;

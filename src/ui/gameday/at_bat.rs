@@ -2,7 +2,7 @@ use crate::components::game::live_game::GameState;
 use crate::components::game::strikezone::{
     DEFAULT_SZ_BOT, DEFAULT_SZ_TOP, HOME_PLATE_WIDTH, StrikeZone,
 };
-use crate::symbols::Symbols;
+use crate::ui::styling::border_style;
 use tui::prelude::*;
 use tui::widgets::canvas::{Canvas, Rectangle};
 use tui::widgets::{Block, Borders, Paragraph, Wrap};
@@ -10,7 +10,6 @@ use tui::widgets::{Block, Borders, Paragraph, Wrap};
 pub struct AtBatWidget<'a> {
     pub game: &'a GameState,
     pub selected_at_bat: Option<u8>,
-    pub symbols: &'a Symbols,
 }
 
 impl Widget for AtBatWidget<'_> {
@@ -86,15 +85,16 @@ impl Widget for AtBatWidget<'_> {
                     &self.game.home_team,
                     &self.game.away_team,
                     &self.game.players,
-                    self.symbols,
                 )
             })
             .flatten()
             .collect();
 
-        let paragraph = Paragraph::new(events)
-            .wrap(Wrap { trim: false })
-            .block(Block::default().borders(Borders::TOP));
+        let paragraph = Paragraph::new(events).wrap(Wrap { trim: false }).block(
+            Block::default()
+                .borders(Borders::TOP)
+                .border_style(border_style()),
+        );
         Widget::render(paragraph, pitch_info, buf);
 
         // display the hit information if available

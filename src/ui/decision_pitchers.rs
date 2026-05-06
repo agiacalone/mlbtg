@@ -1,6 +1,6 @@
 use crate::components::decision_pitchers::{DecisionPitcher, GameDecisionPitchers};
 use crate::components::util::{OptionDisplayExt, last_name};
-use crate::theme::Theme;
+use crate::ui::palette;
 use tui::buffer::Buffer;
 use tui::layout::Rect;
 use tui::style::Style;
@@ -13,7 +13,7 @@ pub struct DecisionPitchersWidget<'a> {
 
 impl Widget for DecisionPitchersWidget<'_> {
     fn render(self, area: Rect, buf: &mut Buffer) {
-        let dim = Style::default().fg(Theme::DIMMED);
+        let dim = Style::default().fg(palette::DIMMED);
         let mut lines = vec![
             wl_line("W", &self.decisions.winning_pitcher, dim),
             wl_line("L", &self.decisions.losing_pitcher, dim),

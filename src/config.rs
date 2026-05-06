@@ -1,6 +1,5 @@
 use crate::components::constants::TEAM_IDS;
 use crate::state::app_settings::{AppSettings, compute_timezone_abbreviation};
-use crate::theme::ThemeLevel;
 use anyhow::Context;
 use chrono_tz::Tz;
 use chrono_tz::Tz::US__Pacific;
@@ -46,16 +45,6 @@ pub struct ConfigFile {
     /// Optional log level to use. If not present, the default is `Error`.
     /// Set the level using a lowercase string, e.g. "error".
     pub log_level: Option<LogLevel>,
-
-    /// Enable Nerd Font icons. Defaults to false for byte-for-byte compatibility.
-    pub nerd_fonts: Option<bool>,
-
-    /// Show team colors on names in Scoreboard and Standings. Defaults to false.
-    pub team_colors: Option<bool>,
-
-    /// Color theme level, modeled after Powerlevel10k.
-    /// Options: "lean" (subtle), "classic" (default), "rainbow" (maximum).
-    pub theme: Option<ThemeLevel>,
 }
 
 impl Default for ConfigFile {
@@ -64,9 +53,6 @@ impl Default for ConfigFile {
             favorite_team: None,
             timezone: Some(DEFAULT_TIMEZONE),
             log_level: Some(DEFAULT_LOG_LEVEL),
-            nerd_fonts: None,
-            team_colors: None,
-            theme: None,
         }
     }
 }
@@ -86,9 +72,6 @@ impl From<ConfigFile> for AppSettings {
             timezone,
             timezone_abbreviation,
             log_level,
-            nerd_fonts: file.nerd_fonts.unwrap_or(false),
-            team_colors: file.team_colors.unwrap_or(false),
-            theme: file.theme.unwrap_or_default(),
         }
     }
 }
@@ -99,9 +82,6 @@ impl From<&AppSettings> for ConfigFile {
             favorite_team: s.favorite_team.map(|t| t.name.to_string()),
             timezone: Some(s.timezone),
             log_level: Some(s.log_level),
-            nerd_fonts: Some(s.nerd_fonts),
-            team_colors: Some(s.team_colors),
-            theme: Some(s.theme),
         }
     }
 }
@@ -189,5 +169,26 @@ impl From<LogLevel> for LevelFilter {
             LogLevel::Warn => LevelFilter::Warn,
             LogLevel::Error => LevelFilter::Error,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn old_config_with_removed_keys_loads() {
+        let toml = r#"
+            favorite_team = "Giants"
+            timezone = "US/Pacific"
+            theme = "rainbow"
+            nerd_fonts = true
+            team_colors = true
+        "#;
+        let parsed: ConfigFile =
+            toml::from_str(toml).expect("config with removed keys should parse");
+        // Surviving keys deserialize correctly.
+        assert_eq!(parsed.favorite_team.as_deref(), Some("Giants"));
+        // Removed keys are silently ignored — no panic, no error.
     }
 }

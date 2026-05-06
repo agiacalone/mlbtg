@@ -1,13 +1,12 @@
 use crate::components::game::live_game::GameState;
-use crate::symbols::Symbols;
-use crate::theme::Theme;
+use crate::ui::palette;
+use crate::ui::styling::border_style;
 use tui::prelude::*;
 use tui::widgets::{Block, Borders, Padding, Paragraph};
 
 pub struct MatchupWidget<'a> {
     pub game: &'a GameState,
     pub selected_at_bat: Option<u8>,
-    pub symbols: &'a Symbols,
 }
 
 impl Widget for MatchupWidget<'_> {
@@ -35,19 +34,18 @@ impl Widget for MatchupWidget<'_> {
                 false,
                 is_current,
                 &self.game.players,
-                self.symbols,
             ))
             .alignment(Alignment::Left)
             .block(
                 Block::default()
                     .borders(Borders::BOTTOM)
+                    .border_style(border_style())
                     .padding(Padding::new(0, 0, 1, 0)),
             ),
             away,
             buf,
         );
         let mut scoreboard_lines = at_bat.matchup.format_scoreboard_lines(
-            self.symbols,
             self.game.away_team.abbreviation,
             self.game.home_team.abbreviation,
         );
@@ -55,9 +53,9 @@ impl Widget for MatchupWidget<'_> {
         if let Some(weather) = &self.game.weather
             && let (Some(condition), Some(temp)) = (&weather.condition, &weather.temp)
         {
-            let icon = self.symbols.weather_icon(condition);
+            let icon = crate::symbols::weather_icon(condition);
             let temp_val: u8 = temp.parse().unwrap_or(70);
-            let temp_color = Theme::temp_color(temp_val);
+            let temp_color = palette::temp_color(temp_val);
 
             let mut spans = vec![];
             if !icon.is_empty() {
@@ -77,8 +75,8 @@ impl Widget for MatchupWidget<'_> {
                     .next()
                     .and_then(|s| s.parse().ok())
                     .unwrap_or(0);
-                let wind_color = Theme::wind_color(mph);
-                let formatted = self.symbols.format_wind(wind);
+                let wind_color = palette::wind_color(mph);
+                let formatted = crate::symbols::format_wind(wind);
                 spans.push(Span::styled(
                     format!("  {formatted}"),
                     Style::default().fg(wind_color),
@@ -93,6 +91,7 @@ impl Widget for MatchupWidget<'_> {
                 .block(
                     Block::default()
                         .borders(Borders::BOTTOM)
+                        .border_style(border_style())
                         .padding(Padding::new(0, 0, 1, 0)),
                 ),
             scoreboard,
@@ -106,12 +105,12 @@ impl Widget for MatchupWidget<'_> {
                 true,
                 is_current,
                 &self.game.players,
-                self.symbols,
             ))
             .alignment(Alignment::Right)
             .block(
                 Block::default()
                     .borders(Borders::BOTTOM)
+                    .border_style(border_style())
                     .padding(Padding::new(0, 0, 1, 0)),
             ),
             home,
