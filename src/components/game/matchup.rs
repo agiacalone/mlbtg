@@ -185,11 +185,7 @@ impl Matchup {
         lines
     }
 
-    pub fn format_scoreboard_lines(
-        &self,
-        away_abbr: &str,
-        home_abbr: &str,
-    ) -> Vec<Line<'_>> {
+    pub fn format_scoreboard_lines(&self, away_abbr: &str, home_abbr: &str) -> Vec<Line<'_>> {
         let arrow = if self.is_top { "▲" } else { "▼" };
         let (second_base, first_third) = self.runners.generate_lines();
 
@@ -243,15 +239,8 @@ mod tests {
 
     fn header(name: &str, challenges: Option<u8>, is_home: bool, current: bool) -> String {
         let m = Matchup::default();
-        m.format_team_lines(
-            name,
-            "TST",
-            challenges,
-            is_home,
-            current,
-            &HashMap::new(),
-        )[0]
-        .to_string()
+        m.format_team_lines(name, "TST", challenges, is_home, current, &HashMap::new())[0]
+            .to_string()
     }
 
     #[test]
