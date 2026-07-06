@@ -113,6 +113,11 @@ pub async fn handle_key_bindings(
         }
         (MenuItem::Scoreboard, Char(':'), _) => guard.update_tab(MenuItem::DatePicker),
         (MenuItem::Scoreboard, Char('w'), _) => guard.state.schedule.toggle_win_probability(),
+        (MenuItem::Scoreboard, Char('s'), _) => {
+            let favorite_team = guard.settings.favorite_team;
+            guard.state.schedule.toggle_sort_mode(favorite_team);
+            load_game_data(guard, network_requests, false).await;
+        }
         (MenuItem::Scoreboard, KeyCode::Enter, _) => {
             guard.update_tab(MenuItem::Gameday);
             load_game_data(guard, network_requests, false).await;
@@ -212,6 +217,7 @@ pub async fn handle_key_bindings(
         (MenuItem::Gameday, Char('k') | KeyCode::Up, _) => guard.state.gameday.next_at_bat(),
         (MenuItem::Gameday, Char('l'), _) => guard.state.gameday.live(),
         (MenuItem::Gameday, Char('s'), _) => guard.state.gameday.start(),
+        (MenuItem::Gameday, Char('!'), _) => guard.state.gameday.toggle_scoring_plays_only(),
 
         (MenuItem::Gameday, Char('h'), _) => guard.state.box_score.set_home_active(),
         (MenuItem::Gameday, Char('a'), _) => guard.state.box_score.set_away_active(),
@@ -242,11 +248,16 @@ async fn load_team(guard: AppGuard<'_>, network_requests: &mpsc::Sender<Refresha
 }
 
 async fn load_game_data(
-    guard: AppGuard<'_>,
+    mut guard: AppGuard<'_>,
     network_requests: &mpsc::Sender<RefreshableRequest>,
     force: bool,
 ) {
     let game_id = guard.state.schedule.get_selected_game_opt();
+    // No-ops when the game hasn't actually changed, so this is safe on every call site. Clearing
+    // stale data from the previous game up front avoids it lingering on screen while the new
+    // game's data loads.
+    guard.state.gameday.reset(game_id);
+    guard.state.box_score.reset(game_id);
     drop(guard);
 
     if let Some(game_id) = game_id {

@@ -14,7 +14,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Removed `theme_level`, `nerd_fonts`, `team_colors` config keys.
 - Glyphs and rich color are now unconditional. A Nerd Font terminal is required.
 
-## [0.4.0]
+## [0.5.0] - 2026-07-03
+
+### Added
+
+- Add auto-advance date logic if app is open overnight: [PR 146](https://github.com/mlb-rs/mlbt/pull/146)
+- Add toggle (`!`) to display scoring plays only in Gameday. Thanks @tjweir! [PR 145](https://github.com/mlb-rs/mlbt/pull/145)
+- Add toggle (`s`) to change the sorting in the Schedule to sort by game status.
+  Thanks @bsdlp!: [PR 144](https://github.com/mlb-rs/mlbt/pull/144)
+
+### Changed
+
+- Update help page UI: [PR 150](https://github.com/mlb-rs/mlbt/pull/150)
+- Update Rust to 1.96.1
+- Update `ratatui` to 0.30.2
+
+### Fixed
+
+- Scrolling plays in the Gameday view now works correctly: [PR 148](https://github.com/mlb-rs/mlbt/pull/148)
+- On the Team page the schedule now handles rainouts correctly: [PR 149](https://github.com/mlb-rs/mlbt/pull/149)
+
+## [0.4.0] - 2026-04-29
 
 ### Added
 

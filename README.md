@@ -219,12 +219,15 @@ The config file is located at:
 | `favorite_team` | Your team — sorted first in schedule, highlighted in standings. TUI: picker shows all 30 teams. Manually: use the full name (e.g. `"San Francisco Giants"`). | none |
 | `timezone` | Game time display. TUI: picker covers common zones. Manually: any value from the [tz database](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones). | `"US/Pacific"` |
 | `log_level` | `"off"`, `"trace"`, `"debug"`, `"info"`, `"warn"`, `"error"`. | `"error"` |
+| `auto_advance_date` | When `true`, any date-driven tab sitting on today rolls over to the new day automatically while the app is open. Tabs on a past date are left untouched. | `true` |
 
 ### Example
 
 ```toml
 favorite_team = "San Francisco Giants"
 timezone = "US/Pacific"
+log_level = "error"
+auto_advance_date = true
 ```
 
 ## Acknowledgments

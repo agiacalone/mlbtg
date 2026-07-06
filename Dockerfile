@@ -1,4 +1,4 @@
-FROM rust:1.95 AS builder
+FROM rust:1.96.1 AS builder
 LABEL org.opencontainers.image.source=https://github.com/agiacalone/mlbtg
 LABEL org.opencontainers.image.description="MLB in your terminal — a fork of mlbt with visual accessibility enhancements."
 LABEL org.opencontainers.image.licenses=MIT
